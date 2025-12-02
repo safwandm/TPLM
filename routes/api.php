@@ -30,6 +30,8 @@ Route::post('/login', function (Request $request) {
     return response()->json(['token' => $token, 'user' => $user]);
 });
 
+Route::middleware('auth:sanctum')->get('/current-user', fn () => response()->json($request->user()));
+
 Route::middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::get('/admin', fn () => ['message' => 'Admin area']);
 });
