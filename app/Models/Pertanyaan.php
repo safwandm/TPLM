@@ -18,7 +18,7 @@ class Pertanyaan extends Model
         'jawaban_benar',
     ];
 
-    public function quiz()
+    public function kuis()
     {
         return $this->belongsTo(Kuis::class);
     }

@@ -10,9 +10,11 @@ return new class extends Migration
     {
         Schema::create('kuis', function (Blueprint $table) {
             $table->id();
+
             $table->foreignId('creator_id')
-                    ->constrained('users', 'user_id')
-                    ->onDelete('cascade');
+                ->constrained('users')  
+                ->onDelete('cascade');
+                
             $table->string('judul');
             $table->integer('total_waktu')->nullable(); 
             $table->boolean('tampilkan_jawaban_benar')->default(false);

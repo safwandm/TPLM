@@ -19,7 +19,7 @@ class Kuis extends Model
         return $this->belongsTo(User::class);
     }
 
-    public function questions()
+    public function pertanyaan()
     {
         return $this->hasMany(Pertanyaan::class);
     }

@@ -1,5 +1,7 @@
 <?php
 
+use App\Http\Controllers\KuisController;
+use App\Http\Controllers\PertanyaanController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
@@ -40,8 +42,16 @@ Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(functi
     Route::get('/users', [UserController::class, 'list_users']);
 });
 
-Route::middleware(['auth:sanctum', 'role:teacher|admin'])->group(function () {
-    Route::get('/teacher', fn () => ['message' => 'Teacher area']);
+Route::prefix('teacher')->middleware(['auth:sanctum', 'role:teacher|admin'])->group(function () {
+    Route::get('/kuis', [KuisController::class, 'index']);
+    Route::post('/kuis', [KuisController::class, 'store']);
+    Route::post('/kuis/full', [KuisController::class, 'storeWithQuestions']);
+    Route::put('/kuis/{id}', [KuisController::class, 'update']);  
+    Route::delete('/kuis/{id}', [KuisController::class, 'destroy']);
+
+    Route::post('/pertanyaan', [PertanyaanController::class, 'store']);
+    Route::put('/pertanyaan/{id}', [PertanyaanController::class, 'update']);
+    Route::delete('/pertanyaan/{id}', [PertanyaanController::class, 'destroy']);
 });
 
 Route::middleware(['auth:sanctum', 'role:student|admin|teacher'])->group(function () {
