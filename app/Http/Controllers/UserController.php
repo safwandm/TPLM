@@ -25,4 +25,42 @@ class UserController extends Controller
     
         return response()->json(['user' => $user], 201);
     }
+
+    public function replace_password(Request $request, $id)
+    {
+        $request->validate([
+            'password' => 'required|string|min:6'
+        ]);
+
+        $user = User::findOrFail($id);
+
+        $user->update([
+            'password' => Hash::make($request->password)
+        ]);
+
+        return response()->json([
+            'message' => 'Password updated successfully.',
+        ], 200);
+    }
+
+    public function list_users()
+    {
+        $users = User::with('roles')->get(); // include roles since you're using Spatie
+
+        return response()->json([
+            'users' => $users
+        ], 200);
+    }
+
+    public function delete_user($id)
+    {
+        $user = User::findOrFail($id);
+
+        $user->delete();
+
+        return response()->json([
+            'message' => 'User deleted successfully.'
+        ], 200);
+    }
+
 }

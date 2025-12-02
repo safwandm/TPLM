@@ -34,7 +34,10 @@ Route::post('/login', function (Request $request) {
 Route::middleware('auth:sanctum')->get('/current-user', fn () => response()->json($request->user()));
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
-    Route::get('/create-user', [UserController::class, 'create_user']);
+    Route::get('/user/create-user', [UserController::class, 'create_user']);
+    Route::put('/user/{id}/replace-password', [UserController::class, 'replace_password']);
+    Route::delete('/user/{id}/', [UserController::class, 'delete_user']);
+    Route::get('/users', [UserController::class, 'list_users']);
 });
 
 Route::middleware(['auth:sanctum', 'role:teacher|admin'])->group(function () {
