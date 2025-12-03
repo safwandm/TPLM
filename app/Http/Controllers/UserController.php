@@ -13,7 +13,7 @@ class UserController extends Controller
         $fields = $request->validate([
             'name' => 'required|string|unique:users,name',
             'password' => 'required|string|min:6',
-            'role' => 'required|string|in:admin,teacher,student'
+            'role' => 'required|string|in:admin,teacher'
         ]);
     
         $user = User::create([

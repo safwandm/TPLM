@@ -54,7 +54,7 @@ Route::prefix('teacher')->middleware(['auth:sanctum', 'role:teacher|admin'])->gr
     Route::delete('/pertanyaan/{id}', [PertanyaanController::class, 'destroy']);
 });
 
-Route::middleware(['auth:sanctum', 'role:student|admin|teacher'])->group(function () {
+Route::middleware(['auth:sanctum', 'role'])->group(function () {
     Route::get('/student', fn () => ['message' => 'Student area']);
 });
 
