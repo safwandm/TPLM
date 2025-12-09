@@ -8,6 +8,7 @@ class Pertanyaan extends Model
 {
     protected $fillable = [
         'kuis_id',
+        'urutan',
         'pertanyaan',
         'url_gambar',
         'persamaan_matematika',

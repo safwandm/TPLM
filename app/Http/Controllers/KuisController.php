@@ -59,9 +59,10 @@ class KuisController extends Controller
             'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false
         ]);
 
-        foreach ($validated['pertanyaan'] as $p) {
+        foreach ($validated['pertanyaan'] as $index => $p) {
             Pertanyaan::create([
                 'kuis_id' => $kuis->id,
+                'urutan' => $index + 1,
                 ...$p
             ]);
         }

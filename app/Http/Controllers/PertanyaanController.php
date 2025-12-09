@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Pertanyaan;
-use App\Models\Kuis;
 
 class PertanyaanController extends Controller
 {
@@ -20,31 +19,80 @@ class PertanyaanController extends Controller
             'jawaban_benar' => 'required|in:a,b,c,d',
             'url_gambar' => 'nullable|string',
             'persamaan_matematika' => 'nullable|string',
-            'batas_waktu' => 'nullable|integer'
+            'batas_waktu' => 'nullable|integer',
         ]);
+
+        // Ambil urutan terbesar untuk kuis ini
+        $nextOrder = Pertanyaan::where('kuis_id', $validated['kuis_id'])
+            ->max('urutan');
+
+        $validated['urutan'] = ($nextOrder ?? 0) + 1;
 
         $pertanyaan = Pertanyaan::create($validated);
 
         return response()->json($pertanyaan, 201);
     }
 
-    // Edit pertanyaan
     public function update(Request $request, $id)
     {
         $pertanyaan = Pertanyaan::findOrFail($id);
 
-        $pertanyaan->update($request->all());
+        $validated = $request->validate([
+            'pertanyaan' => 'sometimes|string',
+            'opsi_a' => 'sometimes|string',
+            'opsi_b' => 'sometimes|string',
+            'opsi_c' => 'sometimes|string',
+            'opsi_d' => 'sometimes|string',
+            'jawaban_benar' => 'sometimes|in:a,b,c,d',
+            'url_gambar' => 'nullable|string',
+            'persamaan_matematika' => 'nullable|string',
+            'batas_waktu' => 'nullable|integer',
+            'urutan' => 'nullable|integer'
+        ]);
+
+        if ($request->has('urutan')) {
+            $newOrder = $request->urutan;
+            $oldOrder = $pertanyaan->urutan;
+            $kuisId   = $pertanyaan->kuis_id;
+
+            if ($newOrder !== $oldOrder) {
+
+                $other = Pertanyaan::where('kuis_id', $kuisId)
+                    ->where('urutan', $newOrder)
+                    ->first();
+
+                if ($other) {
+                    $other->update(['urutan' => $oldOrder]);
+                }
+
+                $validated['urutan'] = $newOrder;
+            }
+        }
+
+        $pertanyaan->update($validated);
 
         return response()->json($pertanyaan);
     }
 
-    // Hapus pertanyaan
     public function destroy($id)
     {
         $pertanyaan = Pertanyaan::findOrFail($id);
+        $kuisId = $pertanyaan->kuis_id;
 
         $pertanyaan->delete();
 
-        return response()->json(['message' => 'Pertanyaan dihapus']);
+        $pertanyaans = Pertanyaan::where('kuis_id', $kuisId)
+            ->orderBy('urutan')
+            ->get();
+
+        $urut = 1;
+        foreach ($pertanyaans as $p) {
+            if ($p->urutan != $urut) {
+                $p->update(['urutan' => $urut]);
+            }
+            $urut++;
+        }
+
+        return response()->json(['message' => 'Pertanyaan dihapus & urutan diperbarui']);
     }
 }

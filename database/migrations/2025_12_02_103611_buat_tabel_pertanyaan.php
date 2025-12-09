@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('pertanyaans', function (Blueprint $table) {
             $table->id();
             $table->foreignId('kuis_id')->constrained()->onDelete('cascade');
+            $table->integer('urutan')->nullable()->after('kuis_id');
 
             $table->text('pertanyaan');
             $table->string('url_gambar')->nullable();
@@ -25,6 +26,8 @@ return new class extends Migration
             $table->enum('jawaban_benar', ['a', 'b', 'c', 'd']);
 
             $table->timestamps();
+            
+            $table->unique(['kuis_id', 'urutan']);
         });
     }
 
