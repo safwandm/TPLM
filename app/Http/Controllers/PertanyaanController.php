@@ -20,6 +20,7 @@ class PertanyaanController extends Controller
             'jawaban_benar' => 'required|in:a,b,c,d',
             'url_gambar' => 'nullable|string',
             'persamaan_matematika' => 'nullable|string',
+            'batas_waktu' => 'nullable|integer'
         ]);
 
         $pertanyaan = Pertanyaan::create($validated);

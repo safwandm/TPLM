@@ -47,7 +47,8 @@ class KuisController extends Controller
             'pertanyaan.*.opsi_d' => 'required|string',
             'pertanyaan.*.jawaban_benar' => 'required|in:a,b,c,d',
             'pertanyaan.*.url_gambar' => 'nullable|string',
-            'pertanyaan.*.persamaan_matematika' => 'nullable|string'
+            'pertanyaan.*.persamaan_matematika' => 'nullable|string',
+            'pertanyaan.*.batas_waktu' => 'nullable|integer'
         ]);
 
         $kuis = Kuis::create([

@@ -11,6 +11,7 @@ class Pertanyaan extends Model
         'pertanyaan',
         'url_gambar',
         'persamaan_matematika',
+        'batas_waktu',
         'opsi_a',
         'opsi_b',
         'opsi_c',

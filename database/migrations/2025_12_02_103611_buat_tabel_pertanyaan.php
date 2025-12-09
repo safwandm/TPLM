@@ -15,6 +15,7 @@ return new class extends Migration
             $table->text('pertanyaan');
             $table->string('url_gambar')->nullable();
             $table->string('persamaan_matematika')->nullable();
+            $table->integer('batas_waktu')->nullable()->default(30); 
 
             $table->string('opsi_a');
             $table->string('opsi_b');

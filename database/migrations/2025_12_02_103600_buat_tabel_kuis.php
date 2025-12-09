@@ -16,7 +16,8 @@ return new class extends Migration
                 ->onDelete('cascade');
                 
             $table->string('judul');
-            $table->integer('total_waktu')->nullable(); 
+            # TODO: belum jelas apakah waktu total per kuis atau per pertanyaan
+            // $table->integer('total_waktu')->nullable(); 
             $table->boolean('tampilkan_jawaban_benar')->default(false);
             $table->boolean('tampilkan_peringkat')->default(false);
             $table->timestamps();
