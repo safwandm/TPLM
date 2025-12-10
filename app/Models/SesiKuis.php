@@ -13,6 +13,7 @@ class SesiKuis extends Model
         'kuis_id',
         'kode',
         'status',
+        'nomor_pertanyaan_sekarang',
         'dimulai_pada',
         'berakhir_pada',
     ];

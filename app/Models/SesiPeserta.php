@@ -22,6 +22,6 @@ class SesiPeserta extends Model
 
     public function jawabans()
     {
-        return $this->hasMany(PesertaJawaban::class, 'peserta_id');
+        return $this->hasMany(JawabanPeserta::class, 'peserta_id');
     }
 }

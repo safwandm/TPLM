@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('kuis_id')->constrained('kuis')->onDelete('cascade');
             $table->string('kode', 10)->unique();
             $table->enum('status', ['waiting', 'running', 'finished'])->default('waiting');
+            $table->integer('nomor_pertanyaan_sekarang')->default(0);
             $table->timestamp('dimulai_pada')->nullable();
             $table->timestamp('berakhir_pada')->nullable();
             $table->timestamps();
