@@ -2,7 +2,11 @@
 
 use App\Http\Controllers\KuisController;
 use App\Http\Controllers\PertanyaanController;
+use App\Http\Controllers\SesiKuisController;
+use App\Http\Controllers\SesiPesertaController;
 use App\Http\Controllers\UserController;
+use App\Models\SesiKuis;
+use App\Models\SesiPeserta;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -54,7 +58,11 @@ Route::prefix('teacher')->middleware(['auth:sanctum', 'role:teacher|admin'])->gr
     Route::delete('/pertanyaan/{id}', [PertanyaanController::class, 'destroy']);
 });
 
-Route::middleware(['auth:sanctum', 'role'])->group(function () {
-    Route::get('/student', fn () => ['message' => 'Student area']);
+Route::prefix('sesi')->middleware(['auth:sanctum', 'role:teacher|admin'])->group(function () {
+    Route::post('/', [SesiKuisController::class, 'create']);
+    Route::post('/{id}/start', [SesiKuisController::class, 'start']);
+    Route::post('/{session_id}/pertanyaan/{question_id}/jawab', [SesiKuisController::class, 'submit']);
 });
+
+Route::post('/join/{kode}', [SesiPesertaController::class, 'join']);
 
