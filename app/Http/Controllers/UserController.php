@@ -11,13 +11,13 @@ class UserController extends Controller
     public function create_user(Request $request)
     {
         $fields = $request->validate([
-            'name' => 'required|string|unique:users,name',
+            'email' => 'required|email|string|unique:users,email',
             'password' => 'required|string|min:6',
             'role' => 'required|string|in:admin,teacher'
         ]);
     
         $user = User::create([
-            'name' => $fields['name'],
+            'email' => $fields['email'],
             'password' => Hash::make($fields['password'])
         ]);
     

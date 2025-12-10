@@ -15,18 +15,18 @@ use Illuminate\Validation\ValidationException;
 
 Route::post('/login', function (Request $request) {
     $request->validate([
-        'name' => 'required',
+        'email' => 'required|email',
         'password' => 'required'
 
     ]);
 
-    $user = User::where('name', $request->name)->first();
+    $user = User::where('email', $request->email)->first();
 
     if (! $user || ! Hash::check($request->password, $user->password)) {
 
         throw ValidationException::withMessages([
 
-            'name' => ['The provided credentials are incorrect.'],
+            'email' => ['The provided credentials are incorrect.'],
 
         ]);
 
