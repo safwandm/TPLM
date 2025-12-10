@@ -36,7 +36,8 @@ class SesiPesertaController extends Controller
         
         $pesertaList = SesiPeserta::where('session_id', $sesi->id)
             ->orderBy('nama')
-            ->get(['id', 'nama']);
+            ->pluck('nama') 
+            ->toArray();
 
         broadcast(new ParticipantsUpdated($sesi->id, $pesertaList));
 

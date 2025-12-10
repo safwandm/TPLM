@@ -186,7 +186,7 @@ class SesiKuisController extends Controller
         $leaderboard = SesiPeserta::where('session_id', $session_id)
             ->orderByDesc('total_skor')
             ->orderBy('nama')
-            ->get(['id', 'nama', 'total_skor']);
+            ->get(['nama', 'total_skor']);
 
         broadcast(new UpdateLeaderboard($session_id, $leaderboard));
 
