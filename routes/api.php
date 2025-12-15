@@ -50,6 +50,7 @@ Route::prefix('teacher')->middleware(['auth:sanctum', 'role:teacher|admin'])->gr
     Route::get('/kuis', [KuisController::class, 'index']);
     Route::post('/kuis', [KuisController::class, 'store']);
     Route::post('/kuis/full', [KuisController::class, 'storeWithQuestions']);
+    Route::get('/kuis/{id}', [KuisController::class, 'show']);  
     Route::put('/kuis/{id}', [KuisController::class, 'update']);  
     Route::delete('/kuis/{id}', [KuisController::class, 'destroy']);
 

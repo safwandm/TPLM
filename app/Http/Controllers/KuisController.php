@@ -10,7 +10,20 @@ class KuisController extends Controller
 {
     public function index(Request $request)
     {
-        $kuis = Kuis::where('creator_id', $request->user()->id)->get();
+        $kuis = Kuis::where('creator_id', $request->user()->id)
+            ->withCount('pertanyaan')
+            ->get();
+
+        return response()->json($kuis);
+    }
+
+    public function show(Request $request, $id)
+    {
+        $kuis = Kuis::with('pertanyaan')
+            ->where('id', $id)
+            ->where('creator_id', $request->user()->id)
+            ->firstOrFail();
+
         return response()->json($kuis);
     }
 
