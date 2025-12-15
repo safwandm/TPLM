@@ -54,16 +54,22 @@ Route::prefix('teacher')->middleware(['auth:sanctum', 'role:teacher|admin'])->gr
     Route::put('/kuis/{id}', [KuisController::class, 'update']);  
     Route::delete('/kuis/{id}', [KuisController::class, 'destroy']);
 
+    Route::get('/kuis/{id}/history', [SesiKuisController::class, 'list_sesi']);
+
     Route::post('/pertanyaan', [PertanyaanController::class, 'store']);
     Route::put('/pertanyaan/{id}', [PertanyaanController::class, 'update']);
     Route::delete('/pertanyaan/{id}', [PertanyaanController::class, 'destroy']);
+
+
 });
 
 Route::prefix('sesi')->middleware(['auth:sanctum', 'role:teacher|admin'])->group(function () {
     Route::post('/', [SesiKuisController::class, 'create']);
+    Route::post('/{id}', [SesiKuisController::class, 'detail_sesi']);
     Route::post('/{id}/start', [SesiKuisController::class, 'start']);
-    Route::post('/{session_id}/pertanyaan/{question_id}/jawab', [SesiKuisController::class, 'submit']);
 });
+
+Route::post('/sesi/{session_id}/pertanyaan/{question_id}/jawab', [SesiKuisController::class, 'submit']);
 
 Route::post('/join/{kode}', [SesiPesertaController::class, 'join']);
 

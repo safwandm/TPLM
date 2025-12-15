@@ -19,6 +19,26 @@ use App\Models\SesiPeserta;
 class SesiKuisController extends Controller
 {
 
+    public function list_sesi($kuisId)
+    {
+        $sesi = SesiKuis::where('kuis_id', $kuisId)
+            ->withCount('pesertas')
+            ->orderByDesc('created_at')
+            ->get();
+
+        return response()->json($sesi);
+    }
+
+    public function detail_sesi($sesiId)
+    {
+        $sesi = SesiKuis::with([
+            'kuis',
+            'pesertas.jawabans.pertanyaan'
+        ])->findOrFail($sesiId);
+
+        return response()->json($sesi);
+    }
+
     public function create(Request $request)
     {
         $request->validate([
