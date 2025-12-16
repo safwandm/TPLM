@@ -26,7 +26,7 @@ class QuizStarting implements ShouldBroadcast
 
     public function broadcastAs()
     {
-        return 'quiz.starting';
+        return 'QuizStarting';
     }
 
     public function broadcastWith()
