@@ -14,33 +14,40 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 Route::post('/login', function (Request $request) {
+
     $request->validate([
         'email' => 'required|email',
-        'password' => 'required'
-
+        'password' => 'required',
     ]);
 
     $user = User::where('email', $request->email)->first();
 
     if (! $user || ! Hash::check($request->password, $user->password)) {
-
         throw ValidationException::withMessages([
-
             'email' => ['The provided credentials are incorrect.'],
-
         ]);
-
     }
-    
+
     $token = $user->createToken('web')->plainTextToken;
 
-    return response()->json(['token' => $token, 'user' => $user]);
+    return response()->json([
+        'token' => $token,
+        'user' => $user,
+        'roles' => $user->getRoleNames(),
+    ]);
 });
 
-Route::middleware('auth:sanctum')->get('/current-user', fn () => response()->json($request->user()));
+Route::middleware('auth:sanctum')->get('/current-user', function (Request $request) {
+    $user = $request->user();
+
+    return response()->json([
+        'user' => $user,
+        'roles' => $user->getRoleNames(), 
+    ]);
+});
 
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
-    Route::get('/user/create-user', [UserController::class, 'create_user']);
+    Route::post('/user/create-user', [UserController::class, 'create_user']);
     Route::put('/user/{id}/replace-password', [UserController::class, 'replace_password']);
     Route::delete('/user/{id}/', [UserController::class, 'delete_user']);
     Route::get('/users', [UserController::class, 'list_users']);

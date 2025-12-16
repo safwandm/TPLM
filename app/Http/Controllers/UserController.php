@@ -45,7 +45,7 @@ class UserController extends Controller
 
     public function list_users()
     {
-        $users = User::with('roles')->get(); // include roles since you're using Spatie
+        $users = User::with('roles')->get();
 
         return response()->json([
             'users' => $users
