@@ -73,7 +73,13 @@ class EndQuestion implements ShouldQueue
         Cache::forget("sesi:{$this->sessionId}:question_ends_at");
 
         // Broadcast event QuestionEnded (frontend bisa kasih transisi)
-        broadcast(new QuestionEnded($session->id, $question->id));
+        $breakTime = config('quiz.question_break_time');
+
+        broadcast(new QuestionEnded(
+            $session->id,
+            $question->id,
+            $breakTime
+        ));
 
         // cari index soal saat ini dan tentukan next
         $ids = $this->questionIds;

@@ -6,19 +6,17 @@ use Illuminate\Broadcasting\Channel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Queue\SerializesModels;
 
-class QuestionEnded implements ShouldBroadcast
+class QuizStarting implements ShouldBroadcast
 {
     use SerializesModels;
 
     public int $sessionId;
-    public int $questionId;
-    public int $breakTime;
+    public int $startsIn;
 
-    public function __construct(int $sessionId, int $questionId, int $breakTime)
+    public function __construct(int $sessionId, int $startsIn)
     {
         $this->sessionId = $sessionId;
-        $this->questionId = $questionId;
-        $this->breakTime = $breakTime;
+        $this->startsIn = $startsIn;
     }
 
     public function broadcastOn()
@@ -26,17 +24,16 @@ class QuestionEnded implements ShouldBroadcast
         return new Channel("sesi.{$this->sessionId}");
     }
 
+    public function broadcastAs()
+    {
+        return 'quiz.starting';
+    }
+
     public function broadcastWith()
     {
         return [
             'session_id' => $this->sessionId,
-            'pertanyaan_id' => $this->questionId,
-            'break_time' => $this->breakTime, 
+            'starts_in' => $this->startsIn,
         ];
-    }
-
-    public function broadcastAs()
-    {
-        return 'QuestionEnded';
     }
 }

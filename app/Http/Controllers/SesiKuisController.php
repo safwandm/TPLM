@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\QuizStarting;
 use App\Events\UpdateLeaderboard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -101,7 +102,15 @@ class SesiKuisController extends Controller
         
         $first = $questions->first();
 
-        ActivateQuestion::dispatch($session->id, $first->id, $questions->pluck('id')->toArray());
+        $startDelay = config('quiz.start_delay');
+
+        broadcast(new QuizStarting($session->id, $startDelay));
+
+        ActivateQuestion::dispatch(
+            $session->id,
+            $first->id,
+            $questions->pluck('id')->toArray()
+        )->delay(now()->addSeconds($startDelay));
 
         return response()->json(['message' => 'Sesi dimulai'], 200);
     }
