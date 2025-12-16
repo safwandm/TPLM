@@ -23,4 +23,11 @@ class Kuis extends Model
     {
         return $this->hasMany(Pertanyaan::class);
     }
+
+    public function kuisAktif()
+    {
+        return $this->hasOne(SesiKuis::class)
+            ->where('status', '!=', 'finished')
+            ->latest('created_at');
+    }
 }

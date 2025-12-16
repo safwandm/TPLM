@@ -12,6 +12,7 @@ class KuisController extends Controller
     {
         $kuis = Kuis::where('creator_id', $request->user()->id)
             ->withCount('pertanyaan')
+            ->with('kuisAktif')
             ->get();
 
         return response()->json($kuis);

@@ -72,7 +72,7 @@ Route::prefix('teacher')->middleware(['auth:sanctum', 'role:teacher|admin'])->gr
 
 Route::prefix('sesi')->middleware(['auth:sanctum', 'role:teacher|admin'])->group(function () {
     Route::post('/', [SesiKuisController::class, 'create']);
-    Route::post('/{id}', [SesiKuisController::class, 'detail_sesi']);
+    Route::get('/{id}', [SesiKuisController::class, 'detail_sesi']);
     Route::post('/{id}/start', [SesiKuisController::class, 'start']);
 });
 
