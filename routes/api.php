@@ -37,6 +37,22 @@ Route::post('/login', function (Request $request) {
     ]);
 });
 
+Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
+    $request->user()->currentAccessToken()->delete();
+
+    return response()->json([
+        'message' => 'Logged out'
+    ]);
+});
+
+Route::middleware('auth:sanctum')->post('/logout-all', function (Request $request) {
+    $request->user()->tokens()->delete();
+
+    return response()->json([
+        'message' => 'All tokens revoked'
+    ]);
+});
+
 Route::middleware('auth:sanctum')->get('/current-user', function (Request $request) {
     $user = $request->user();
 
@@ -78,6 +94,8 @@ Route::prefix('sesi')->middleware(['auth:sanctum', 'role:teacher|admin'])->group
 Route::get('/sesi/{id}', [SesiKuisController::class, 'detail_sesi']);
 
 Route::post('/sesi/{session_id}/pertanyaan/{question_id}/jawab', [SesiKuisController::class, 'submit']);
+Route::get('/sesi/{id}', [SesiKuisController::class, 'detail_sesi']);
+
 
 Route::post('/join/{kode}', [SesiPesertaController::class, 'join']);
 
