@@ -1,6 +1,6 @@
 #!/bin/bash
 
-php artisan serve &
+php artisan serve --port=8001 &
 PID1=$!
 
 php artisan reverb:start &
