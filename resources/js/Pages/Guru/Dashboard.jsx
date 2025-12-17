@@ -73,7 +73,7 @@ export default function Dashboard() {
         setLoadingId(kuisId);
 
         try {
-            const res = await fetch(API.teacher.initiateQuizSession, {
+            const res = await fetch(API.session.create, {
                 method: "POST",
                 headers: {
                     Accept: "application/json",
