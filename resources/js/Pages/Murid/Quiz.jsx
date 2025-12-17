@@ -1,13 +1,17 @@
 import { useEffect, useState } from "react";
-// import "./echo";
 
 export default function StudentQuiz() {
     const id = Number(window.location.pathname.split("/")[2]);
     const peserta = JSON.parse(localStorage.getItem("peserta"));
 
+    const [answered, setAnswered] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
     const [status, setStatus] = useState("running");
     const [question, setQuestion] = useState(null);
     const [endsAt, setEndsAt] = useState(null);
+    const [leaderboard, setLeaderboard] = useState([]);
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [finished, setFinished] = useState(false);
     const [error, setError] = useState("");
 
     /* ================================
@@ -22,26 +26,41 @@ export default function StudentQuiz() {
     /* ================================
        WEBSOCKET SUBSCRIPTION
     ================================= */
-    // useEffect(() => {
-    //     const channel = window.Echo.channel(`sesi.${id}`);
+    useEffect(() => {
+        const channel = window.Echo.channel(`sesi.${id}`);
 
-    //     channel
-    //         .listen(".QuestionStarted", (e) => {
-    //             setQuestion(e);
-    //             setEndsAt(e.ends_at);
-    //         })
-    //         .listen(".QuestionEnded", () => {
-    //             setQuestion(null);
-    //             setEndsAt(null);
-    //         })
-    //         .listen(".SessionFinished", () => {
-    //             window.location.href = "/";
-    //         });
+        channel
+            .listen(".QuestionStarted", (e) => {
+                setQuestion(e);
+                setEndsAt(e.ends_at);
+                setAnswered(false);
+                setSubmitting(false);
+                setShowLeaderboard(false);
+            })
+        
 
-    //     return () => {
-    //         window.Echo.leave(`sesi.${id}`);
-    //     };
-    // }, [id]);
+            .listen(".QuestionEnded", () => {
+                console.log("QuestionEnded");
+                setQuestion(null);
+                setEndsAt(null);
+                setShowLeaderboard(true); // tampilkan leaderboard
+            })
+
+            .listen(".LeaderboardUpdated", (e) => {
+                console.log("LeaderboardUpdated", e);
+                setLeaderboard(e.leaderboard);
+            })
+
+            .listen(".SessionFinished", () => {
+                console.log("SessionFinished");
+                setFinished(true);
+                setShowLeaderboard(true);
+            });
+
+        return () => {
+            window.Echo.leave(`sesi.${id}`);
+        };
+    }, [id]);
 
     if (error) {
         return (
@@ -51,6 +70,42 @@ export default function StudentQuiz() {
         );
     }
 
+    async function submitAnswer(jawaban) {
+        if (answered || submitting) return;
+    
+        setSubmitting(true);
+    
+        try {
+            const res = await fetch(
+                `http://127.0.0.1:8001/api/sesi/${id}/pertanyaan/${question.pertanyaan_id}/jawab`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        Accept: "application/json",
+                    },
+                    body: JSON.stringify({
+                        peserta_id: peserta.id,
+                        pertanyaan_id: question.pertanyaan_id,
+                        jawaban: jawaban,
+                    }),
+                }
+            );
+    
+            if (!res.ok) {
+                throw new Error("Gagal mengirim jawaban");
+            }
+    
+            setAnswered(true);
+        } catch (err) {
+            console.error(err);
+            alert(err.message);
+        } finally {
+            setSubmitting(false);
+        }
+    }
+    
+
     /* ================================
        UI
     ================================= */
@@ -59,14 +114,15 @@ export default function StudentQuiz() {
             <div className="bg-white rounded-xl shadow-lg p-8 max-w-xl w-full">
 
                 <h1 className="text-2xl font-bold text-gray-800 mb-2">
-                    Kuis Sedang Berlangsung
+                    {finished ? "Kuis Selesai" : "Kuis Sedang Berlangsung"}
                 </h1>
 
                 <p className="text-gray-600 mb-6">
                     Peserta: <b>{peserta.nama}</b>
                 </p>
 
-                {!question && (
+                {/* ================= SOAL ================= */}
+                {!question && !showLeaderboard && (
                     <div className="p-6 border rounded bg-gray-50 text-center text-gray-500">
                         ⏳ Menunggu soal berikutnya...
                     </div>
@@ -90,18 +146,69 @@ export default function StudentQuiz() {
                             {Object.entries(question.opsi).map(([key, val]) => (
                                 <button
                                     key={key}
-                                    className="w-full border rounded px-4 py-2 hover:bg-blue-50"
+                                    disabled={answered}
+                                    onClick={() => submitAnswer(key)}
+                                    className={`w-full border rounded px-4 py-2
+                                        ${answered
+                                            ? "bg-gray-200 cursor-not-allowed"
+                                            : "hover:bg-blue-50"}
+                                    `}
                                 >
                                     {key.toUpperCase()}. {val}
                                 </button>
                             ))}
                         </div>
 
+                        {answered && (
+                            <p className="text-center text-green-600 text-sm">
+                                ✅ Jawaban terkirim
+                            </p>
+                        )}
+
                         <p className="text-sm text-gray-500 text-center">
-                            ⏱ Berakhir pada: {new Date(endsAt).toLocaleTimeString()}
+                            ⏱ Berakhir pada:{" "}
+                            {endsAt && new Date(endsAt).toLocaleTimeString()}
                         </p>
                     </div>
                 )}
+
+                {/* ================= LEADERBOARD ================= */}
+                {showLeaderboard && (
+                    <div className="mt-6">
+                        <h2 className="font-semibold text-lg mb-2 text-center">
+                            🏆 Leaderboard
+                        </h2>
+
+                        <ul className="border rounded divide-y">
+                            {leaderboard.length === 0 && (
+                                <li className="p-3 text-center text-gray-500">
+                                    Belum ada data
+                                </li>
+                            )}
+
+                            {leaderboard.map((l, i) => (
+                                <li
+                                    key={i}
+                                    className="flex justify-between p-3 text-sm"
+                                >
+                                    <span>
+                                        {i + 1}. {l.nama}
+                                    </span>
+                                    <span className="font-semibold">
+                                        {l.skor}
+                                    </span>
+                                </li>
+                            ))}
+                        </ul>
+
+                        {finished && (
+                            <div className="text-center mt-4 text-green-600 font-semibold">
+                                ✅ Terima kasih telah mengikuti kuis
+                            </div>
+                        )}
+                    </div>
+                )}
+
             </div>
         </div>
     );

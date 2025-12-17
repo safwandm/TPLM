@@ -18,11 +18,9 @@ export default function WaitingRoom({ id }) {
     }, [id]);
 
     /* ================================
-       FETCH + POLLING
+       INITIAL FETCH (1x SAJA)
     ================================= */
     useEffect(() => {
-        let interval;
-
         async function fetchSesi() {
             try {
                 const res = await fetch(
@@ -30,13 +28,9 @@ export default function WaitingRoom({ id }) {
                     { headers: { Accept: "application/json" } }
                 );
 
-                if (!res.ok) {
-                    throw new Error("Gagal memuat sesi");
-                }
+                if (!res.ok) throw new Error("Gagal memuat sesi");
 
                 const data = await res.json();
-
-                console.log("Fetched sesi:", data);
 
                 setSesi(data);
                 setPesertaList(data.pesertas?.map(p => p.nama) || []);
@@ -57,9 +51,28 @@ export default function WaitingRoom({ id }) {
         }
 
         fetchSesi();
-        interval = setInterval(fetchSesi, 2000);
+    }, [id]);
 
-        return () => clearInterval(interval);
+    /* ================================
+       WEBSOCKET (REALTIME)
+    ================================= */
+    useEffect(() => {
+        const channel = window.Echo.channel(`sesi.${id}`)
+            .listen(".ParticipantsUpdated", e => {
+                console.log("ParticipantsUpdated", e);
+                setPesertaList(e.peserta.map(p => p.nama));
+            })
+            .listen(".QuizStarting", e => {
+                console.log("QuizStarting", e);
+                window.location.href = `/kuis/${id}`;
+            })
+            .listen(".SessionFinished", () => {
+                window.location.href = "/";
+            });
+
+        return () => {
+            window.Echo.leave(`sesi.${id}`);
+        };
     }, [id]);
 
     /* ================================
@@ -82,7 +95,7 @@ export default function WaitingRoom({ id }) {
     }
 
     /* ================================
-       UI
+       UI (TIDAK DIUBAH)
     ================================= */
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-900 to-blue-700 flex items-center justify-center">
