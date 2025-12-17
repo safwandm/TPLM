@@ -1,5 +1,5 @@
 import AppLayout from "@/Layouts/AppLayout";
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { API } from "@/lib/api";
 
 

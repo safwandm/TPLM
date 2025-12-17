@@ -185,7 +185,7 @@ class SesiKuisController extends Controller
         }
 
         // Hitung waktu respon
-        $waktuJawabMs = Carbon::parse($endsAt)->diffInMilliseconds($now);
+        $waktuJawabMs = Carbon::parse(time:$now)->diffInMilliseconds(date: $endsAt);
 
         $question = Pertanyaan::find($currentQuestionId);
 

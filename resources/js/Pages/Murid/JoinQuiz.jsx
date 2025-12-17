@@ -13,41 +13,32 @@ export default function JoinQuiz() {
         setError("");
 
         try {
-            const res = await fetch(
-                API.session.joinByCode(code),
-                {
-                    method: "POST",
-                    headers: {
-                        Accept: "application/json",
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({
-                        nama: name,
-                    }),
-                }
-            );
+            const res = await fetch(API.session.joinByCode(code), {
+                method: "POST",
+                headers: {
+                    Accept: "application/json",
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ nama: name }),
+            });
 
             const data = await res.json();
-
-            if (!res.ok) {
-                throw data;
-            }
+            if (!res.ok) throw data;
 
             localStorage.setItem(
                 "peserta",
-                JSON.stringify(data.peserta)
+                JSON.stringify({
+                    id: data.peserta.id,
+                    nama: data.peserta.nama,
+                    session_id: data.peserta.session_id,
+                })
             );
 
             window.location.href = `/menunggu/${data.peserta.session_id}`;
-
         } catch (err) {
-            if (err?.message) {
-                setError(err.message);
-            } else if (err?.errors?.nama) {
-                setError(err.errors.nama[0]);
-            } else {
-                setError("Gagal bergabung ke kuis");
-            }
+            if (err?.message) setError(err.message);
+            else if (err?.errors?.nama) setError(err.errors.nama[0]);
+            else setError("Gagal bergabung ke kuis");
         } finally {
             setLoading(false);
         }
@@ -110,8 +101,8 @@ export default function JoinQuiz() {
                         type="submit"
                         disabled={!canJoin || loading}
                         className={`w-full py-2 text-white rounded ${canJoin && !loading
-                                ? "bg-blue-600 hover:bg-blue-700"
-                                : "bg-gray-400"
+                            ? "bg-blue-600 hover:bg-blue-700"
+                            : "bg-gray-400"
                             }`}
                     >
                         {loading ? "Loading..." : "Mulai Kuis"}

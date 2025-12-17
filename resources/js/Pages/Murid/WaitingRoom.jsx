@@ -19,15 +19,14 @@ export default function WaitingRoom({ id }) {
     }, [id]);
 
     /* ================================
-       INITIAL FETCH (1x SAJA)
+       INITIAL FETCH
     ================================= */
     useEffect(() => {
         async function fetchSesi() {
             try {
-                const res = await fetch(
-                   API.session.detail(id),
-                    { headers: { Accept: "application/json" } }
-                );
+                const res = await fetch(API.session.detail(id), {
+                    headers: { Accept: "application/json" },
+                });
 
                 if (!res.ok) throw new Error("Gagal memuat sesi");
 
@@ -43,7 +42,6 @@ export default function WaitingRoom({ id }) {
                 if (data.status === "finished") {
                     window.location.href = "/";
                 }
-
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -55,16 +53,17 @@ export default function WaitingRoom({ id }) {
     }, [id]);
 
     /* ================================
-       WEBSOCKET (REALTIME)
+       WEBSOCKET
     ================================= */
     useEffect(() => {
         const channel = window.Echo.channel(`sesi.${id}`)
             .listen(".ParticipantsUpdated", e => {
+                if (Array.isArray(e.peserta)) {
+                    setPesertaList(e.peserta);
+                }
                 console.log("ParticipantsUpdated", e);
-                setPesertaList(e.peserta.map(p => p.nama));
             })
-            .listen(".QuizStarting", e => {
-                console.log("QuizStarting", e);
+            .listen(".QuizStarting", () => {
                 window.location.href = `/kuis/${id}`;
             })
             .listen(".SessionFinished", () => {
@@ -96,70 +95,57 @@ export default function WaitingRoom({ id }) {
     }
 
     /* ================================
-       UI (TIDAK DIUBAH)
+       UI
     ================================= */
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-900 to-blue-700 flex items-center justify-center">
             <div className="bg-white w-full max-w-xl p-8 rounded-xl shadow-lg">
 
-                {/* HEADER */}
                 <div className="text-center mb-6">
-                    <h1 className="text-2xl font-bold text-gray-800">
+                    <h1 className="text-2xl font-bold">
                         Menunggu Kuis Dimulai ⏳
                     </h1>
                     <p className="text-gray-500 mt-1">
-                        Tetap di halaman ini sampai guru memulai kuis
+                        Jangan tutup halaman ini
                     </p>
                 </div>
 
-                {/* SESSION INFO */}
-                <div className="bg-blue-50 border border-blue-200 p-4 rounded mb-6">
+                <div className="bg-blue-50 border p-4 rounded mb-6">
                     <div className="flex justify-between text-sm">
-                        <span className="font-medium">Kode Kuis</span>
-                        <span className="font-mono text-lg tracking-widest">
+                        <span>Kode Kuis</span>
+                        <span className="font-mono text-lg">
                             {sesi.kode}
                         </span>
                     </div>
 
                     <div className="flex justify-between text-sm mt-2">
-                        <span className="font-medium">Nama Anda</span>
+                        <span>Nama</span>
                         <span>{peserta.nama}</span>
                     </div>
 
                     <div className="flex justify-between text-sm mt-2">
-                        <span className="font-medium">Status</span>
+                        <span>Status</span>
                         <span className="capitalize">{sesi.status}</span>
                     </div>
                 </div>
 
-                {/* PARTICIPANTS */}
-                <div>
-                    <h2 className="font-semibold text-gray-700 mb-2">
-                        Peserta ({pesertaList.length})
-                    </h2>
+                <h2 className="font-semibold mb-2">
+                    Peserta ({pesertaList.length})
+                </h2>
 
-                    <div className="border rounded max-h-40 overflow-y-auto">
-                        {pesertaList.length === 0 ? (
-                            <p className="text-sm text-gray-500 p-3">
-                                Belum ada peserta
-                            </p>
-                        ) : (
-                            pesertaList.map((nama, idx) => (
-                                <div
-                                    key={idx}
-                                    className="px-3 py-2 border-b last:border-b-0 text-sm"
-                                >
-                                    {nama}
-                                </div>
-                            ))
-                        )}
-                    </div>
+                <div className="border rounded max-h-40 overflow-y-auto">
+                    {pesertaList.map((nama, i) => (
+                        <div
+                            key={i}
+                            className="px-3 py-2 border-b last:border-b-0"
+                        >
+                            {nama}
+                        </div>
+                    ))}
                 </div>
 
-                {/* FOOTER */}
                 <div className="mt-6 text-center text-sm text-gray-500">
-                    🚀 Kuis akan otomatis dimulai saat guru menekan{" "}
-                    <b>Start</b>
+                    🚀 Kuis akan otomatis dimulai oleh guru
                 </div>
             </div>
         </div>
