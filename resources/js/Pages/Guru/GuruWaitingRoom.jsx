@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaPlay } from "react-icons/fa";
 
+import { API } from "@/lib/api";
+
 export default function TeacherQuiz() {
     const id = Number(window.location.pathname.split("/")[2]);
 
@@ -65,7 +67,7 @@ export default function TeacherQuiz() {
     ================================= */
     useEffect(() => {
         const token = localStorage.getItem("auth_token");
-        fetch(API.teacher.session(id), {
+        fetch(API.session.detail(id), {
             headers: {
                 Authorization: `Bearer ${token}`,
                 Accept: "application/json",
@@ -88,7 +90,7 @@ export default function TeacherQuiz() {
 
         try {
             const res = await fetch(
-                API.teacher.start(id),
+                API.session.start(id),
                 {
                     method: "POST",
                     headers: {

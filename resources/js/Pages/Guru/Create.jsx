@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { API } from "../../lib/api";
+import { API } from "@/lib/api";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
 

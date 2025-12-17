@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
-import { API } from "../../lib/api";
+import { API } from "@/lib/api";
 
 export default function Edit() {
     const editFormRef = useRef(null);

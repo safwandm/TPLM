@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { API } from "../../lib/api";
+import { API } from "@/lib/api";
 
 export default function JoinQuiz() {
     const [name, setName] = useState("");

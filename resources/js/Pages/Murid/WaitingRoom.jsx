@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { API } from "../../lib/api";
+import { API } from "@/lib/api";
 
 export default function WaitingRoom({ id }) {
     const peserta = JSON.parse(localStorage.getItem("peserta"));
