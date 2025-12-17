@@ -195,7 +195,16 @@ class SesiKuisController extends Controller
         }
 
         if ($isBenar) {
-            $peserta->total_skor = $peserta->total_skor + 100  + (1  - ($waktuJawabMs / ($question->batas_waktu *  1000))) * 100;
+            $timeLimitMs = $question->batas_waktu * 1000;
+        
+            $timeFactor = 1 - ($waktuJawabMs / $timeLimitMs);
+            $timeFactor = max(0, min(1, $timeFactor));
+        
+            $score =
+                config('quiz.base_score') +
+                ($timeFactor * config('quiz.time_bonus_score'));
+        
+            $peserta->total_skor += $score;
             $peserta->save();
         }
 
