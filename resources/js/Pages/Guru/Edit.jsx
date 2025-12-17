@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
+import { API } from "../../lib/api";
 
 export default function Edit() {
     const editFormRef = useRef(null);
@@ -50,7 +51,7 @@ export default function Edit() {
         const token = localStorage.getItem("auth_token");
         if (!token) return (window.location.href = "/login");
 
-        fetch(`http://127.0.0.1:8001/api/teacher/kuis/${quizId}`, {
+        fetch(API.teacher.quiz(quizId), {
             headers: {
                 Accept: "application/json",
                 Authorization: `Bearer ${token}`,
@@ -186,7 +187,7 @@ export default function Edit() {
 
         try {
             /* 1️⃣ UPDATE KUIS */
-            await fetch(`http://127.0.0.1:8001/api/teacher/kuis/${quizId}`, {
+            await fetch(API.teacher.quiz(quizId), {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
@@ -202,7 +203,7 @@ export default function Edit() {
 
             /* 2️⃣ DELETE */
             for (const id of deletedQuestionIdsRef.current) {
-                await fetch(`http://127.0.0.1:8001/api/teacher/pertanyaan/${id}`, {
+                await fetch(API.teacher.question(id), {
                     method: "DELETE",
                     headers: { Authorization: `Bearer ${token}` },
                 });
@@ -210,7 +211,7 @@ export default function Edit() {
 
             /* 3️⃣ UPDATE */
             for (const [id, payload] of updatedQuestionsRef.current.entries()) {
-                await fetch(`http://127.0.0.1:8001/api/teacher/pertanyaan/${id}`, {
+                await fetch(API.teacher.question(id), {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
@@ -222,7 +223,7 @@ export default function Edit() {
 
             /* 4️⃣ ADD */
             for (const q of addedQuestionsRef.current) {
-                await fetch(`http://127.0.0.1:8001/api/teacher/pertanyaan`, {
+                await fetch(API.teacher.createQuestion, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

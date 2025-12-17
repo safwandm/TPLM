@@ -1,10 +1,11 @@
 import React from "react";
+import { API } from "../lib/api";
 
 export default function Header({ user }) {
     async function handleLogout() {
 
         const token = localStorage.getItem("auth_token");
-        await fetch("http://localhost:8001/api/logout", {
+        await fetch(API.auth.logout, {
             method: "POST",
             headers: {
                 Authorization: `Bearer ${token}`

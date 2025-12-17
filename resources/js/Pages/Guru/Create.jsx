@@ -1,11 +1,7 @@
-// resources/js/Pages/Quizzes/Create.jsx
 import React, { useState } from "react";
-// import { router } from "@inertiajs/react";
-
-import AppLayout from "@/Layouts/AppLayout";
+import { API } from "../../lib/api";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
-import { apiFetch } from "@/lib/api";
 
 export default function CreateQuiz() {
     const [title, setTitle] = useState("");
@@ -103,7 +99,7 @@ export default function CreateQuiz() {
         const token = localStorage.getItem("auth_token");
 
         try {
-            const res = await fetch("http://127.0.0.1:8001/api/teacher/kuis/full", {
+            const res = await fetch(API.teacher.createQuizFull, {
                 method: "POST",
                 headers: {
                     "Accept": "application/json",

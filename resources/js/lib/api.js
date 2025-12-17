@@ -1,23 +1,39 @@
-export async function apiFetch(url, options = {}) {
-    const token = localStorage.getItem("auth_token");
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-    const res = await fetch(`http://localhost:8001/api${url}`, {
-        ...options,
-        headers: {
-            Accept: "application/json",
-            "Content-Type": "application/json",
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-            ...options.headers,
-        },
-    });
+export const API = {
+    base: API_BASE_URL,
 
-    // Handle unauthenticated
-    if (res.status === 401) {
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("auth_user");
-        window.location.href = "/login";
-        throw new Error("Unauthorized");
-    }
+    /* =====================
+       AUTH
+    ===================== */
+    auth: {
+        login: `${API_BASE_URL}/login`,
+        logout: `${API_BASE_URL}/logout`,
+        currentUser: `${API_BASE_URL}/current-user`,
+    },
 
-    return res;
-}
+    /* =====================
+       TEACHER / QUIZ
+    ===================== */
+    teacher: {
+        createQuizFull: `${API_BASE_URL}/teacher/kuis/full`,
+        allQuiz: `${API_BASE_URL}/teacher/kuis`,
+        quiz: (quizId) => `${API_BASE_URL}/teacher/kuis/${quizId}`,
+
+        /* QUESTIONS */
+        createQuestion: `${API_BASE_URL}/teacher/pertanyaan`,
+        question: (id) => `${API_BASE_URL}/teacher/pertanyaan/${id}`,
+    },
+
+    /* =====================
+       SESSION (SESI KUIS)
+    ===================== */
+    session: {
+        create: `${API_BASE_URL}/sesi`,
+        detail: (id) => `${API_BASE_URL}/sesi/${id}`,
+        start: (id) => `${API_BASE_URL}/sesi/${id}/start`,
+        joinByCode: (code) => `${API_BASE_URL}/join/${code}`,
+        submitAnswer: (sesiId, pertanyaanId) =>
+            `${API_BASE_URL}/sesi/${sesiId}/pertanyaan/${pertanyaanId}/jawab`,
+    },
+};

@@ -65,7 +65,7 @@ export default function TeacherQuiz() {
     ================================= */
     useEffect(() => {
         const token = localStorage.getItem("auth_token");
-        fetch(`http://localhost:8001/api/sesi/${id}`, {
+        fetch(API.teacher.session(id), {
             headers: {
                 Authorization: `Bearer ${token}`,
                 Accept: "application/json",
@@ -88,7 +88,7 @@ export default function TeacherQuiz() {
 
         try {
             const res = await fetch(
-                `http://localhost:8001/api/sesi/${id}/start`,
+                API.teacher.start(id),
                 {
                     method: "POST",
                     headers: {

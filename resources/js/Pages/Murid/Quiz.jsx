@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API } from "../../lib/api";
 
 export default function StudentQuiz() {
     const id = Number(window.location.pathname.split("/")[2]);
@@ -77,7 +78,7 @@ export default function StudentQuiz() {
     
         try {
             const res = await fetch(
-                `http://127.0.0.1:8001/api/sesi/${id}/pertanyaan/${question.pertanyaan_id}/jawab`,
+                API.session.submitAnswer(id, question.pertanyaan_id),
                 {
                     method: "POST",
                     headers: {

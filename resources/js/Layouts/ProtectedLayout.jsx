@@ -1,5 +1,7 @@
 import AppLayout from "@/Layouts/AppLayout";
 import React, { useState, useEffect } from "react";
+import { API } from "@/lib/api";
+
 
 export default function ProtectedLayout({ children, allowedRoles = [] }) {
     const [loading, setLoading] = useState(true);
@@ -14,7 +16,7 @@ export default function ProtectedLayout({ children, allowedRoles = [] }) {
             }
 
             try {
-                const res = await fetch("http://localhost:8001/api/current-user", {
+                const res = await fetch(API.auth.currentUser, {
                     headers: {
                         Authorization: `Bearer ${token}`,
                         Accept: "application/json",

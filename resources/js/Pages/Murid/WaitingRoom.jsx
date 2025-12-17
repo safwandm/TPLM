@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { API } from "../../lib/api";
 
 export default function WaitingRoom({ id }) {
     const peserta = JSON.parse(localStorage.getItem("peserta"));
@@ -24,7 +25,7 @@ export default function WaitingRoom({ id }) {
         async function fetchSesi() {
             try {
                 const res = await fetch(
-                    `http://127.0.0.1:8001/api/sesi/${id}`,
+                   API.session.detail(id),
                     { headers: { Accept: "application/json" } }
                 );
 

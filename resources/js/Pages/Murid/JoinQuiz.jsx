@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API } from "../../lib/api";
 
 export default function JoinQuiz() {
     const [name, setName] = useState("");
@@ -13,7 +14,7 @@ export default function JoinQuiz() {
 
         try {
             const res = await fetch(
-                `http://localhost:8001/api/join/${code}`,
+                API.session.joinByCode(code),
                 {
                     method: "POST",
                     headers: {

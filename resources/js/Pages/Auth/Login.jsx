@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { API } from "@/lib/api";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -21,7 +22,7 @@ export default function Login() {
         setError("");
 
         try {
-            const response = await fetch("http://localhost:8001/api/login", {
+            const response = await fetch(API.auth.login, {
                 method: "POST",
                 headers: {
                     "Accept": "application/json",
@@ -31,6 +32,8 @@ export default function Login() {
             });
 
             const data = await response.json();
+
+            alert(JSON.stringify(data));
 
             if (!response.ok) {
                 // Laravel validation / auth error

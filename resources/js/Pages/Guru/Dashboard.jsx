@@ -7,6 +7,7 @@ import {
     FaFileAlt,
     FaTrash,
 } from "react-icons/fa";
+import { API } from "@/lib/api";
 
 export default function Dashboard() {
     const user = JSON.parse(localStorage.getItem("auth_user"));
@@ -29,7 +30,7 @@ export default function Dashboard() {
         async function fetchQuizzes() {
             try {
                 const res = await fetch(
-                    "http://127.0.0.1:8001/api/teacher/kuis",
+                    API.teacher.allQuiz,
                     {
                         method: "GET",
                         headers: {
@@ -72,7 +73,7 @@ export default function Dashboard() {
         setLoadingId(kuisId);
 
         try {
-            const res = await fetch("http://127.0.0.1:8001/api/sesi", {
+            const res = await fetch(API.teacher.initiateQuizSession, {
                 method: "POST",
                 headers: {
                     Accept: "application/json",
