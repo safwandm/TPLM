@@ -13,7 +13,7 @@ export default function WaitingRoom({ id }) {
        VALIDATE PESERTA
     ================================= */
     useEffect(() => {
-        if (!peserta || peserta.session_id != id) {
+        if (!peserta || peserta.session_id !== Number(id)) {
             window.location.href = "/";
         }
     }, [id]);
@@ -36,6 +36,7 @@ export default function WaitingRoom({ id }) {
                 setPesertaList(data.pesertas?.map(p => p.nama) || []);
 
                 if (data.status === "running") {
+                    // IMPORTANT: id === sesi_kuis.id
                     window.location.href = `/kuis/${id}`;
                 }
 
@@ -61,7 +62,6 @@ export default function WaitingRoom({ id }) {
                 if (Array.isArray(e.peserta)) {
                     setPesertaList(e.peserta);
                 }
-                console.log("ParticipantsUpdated", e);
             })
             .listen(".QuizStarting", () => {
                 window.location.href = `/kuis/${id}`;
@@ -75,9 +75,6 @@ export default function WaitingRoom({ id }) {
         };
     }, [id]);
 
-    /* ================================
-       STATES
-    ================================= */
     if (loading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -94,9 +91,6 @@ export default function WaitingRoom({ id }) {
         );
     }
 
-    /* ================================
-       UI
-    ================================= */
     return (
         <div className="min-h-screen bg-gradient-to-b from-blue-900 to-blue-700 flex items-center justify-center">
             <div className="bg-white w-full max-w-xl p-8 rounded-xl shadow-lg">

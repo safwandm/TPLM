@@ -142,6 +142,7 @@ class SesiKuisController extends Controller
 
     public function submit(Request $request, $session_id, $question_id)
     {
+
         $request->validate([
             'peserta_id' => 'required|exists:sesi_pesertas,id',
             'jawaban' => 'nullable|in:a,b,c,d',
@@ -177,7 +178,9 @@ class SesiKuisController extends Controller
         }
 
         // Validasi waktu
-        $endsAt = Cache::get("sesi:{$session_id}:question_ends_at");
+        $endsAtRaw = Cache::get("sesi:{$session_id}:question_ends_at");
+
+        $endsAt = Carbon::parse($endsAtRaw); // ✅ convert string → Carbon
         $now = now();
 
         if (!$endsAt || $now->greaterThan($endsAt)) {
@@ -185,7 +188,8 @@ class SesiKuisController extends Controller
         }
 
         // Hitung waktu respon
-        $waktuJawabMs = Carbon::parse(time:$now)->diffInMilliseconds(date: $endsAt);
+        $waktuJawabMs = max(0, $endsAt->diffInMilliseconds($now));
+        $waktuJawabMs = (int) $waktuJawabMs;
 
         $question = Pertanyaan::find($currentQuestionId);
 
@@ -200,12 +204,14 @@ class SesiKuisController extends Controller
             $timeFactor = 1 - ($waktuJawabMs / $timeLimitMs);
             $timeFactor = max(0, min(1, $timeFactor));
         
-            $score =
-                config('quiz.base_score') +
-                ($timeFactor * config('quiz.time_bonus_score'));
-        
-            $peserta->total_skor += $score;
-            $peserta->save();
+                $score =
+                    config('quiz.base_score') +
+                    ($timeFactor * config('quiz.time_bonus_score'));
+
+                $score = (int) round($score); // ✅ ADD THIS
+
+                $peserta->total_skor += $score;
+                $peserta->save();
         }
 
         $jawaban = JawabanPeserta::updateOrCreate(
