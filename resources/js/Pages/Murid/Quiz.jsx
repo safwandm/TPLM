@@ -14,7 +14,6 @@ export default function StudentQuiz() {
     const [correctAnswer, setCorrectAnswer] = useState(null);
     const [isCorrect, setIsCorrect] = useState(null);
 
-    const [leaderboard, setLeaderboard] = useState([]);
     const [quizFinished, setQuizFinished] = useState(false);
     const [finalScore, setFinalScore] = useState(0);
 
@@ -42,24 +41,13 @@ export default function StudentQuiz() {
                 resetState();
             })
 
-            .listen(".LeaderboardUpdated", (e) => {
-                if (Array.isArray(e.leaderboard)) {
-                    setLeaderboard(e.leaderboard);
-                }
-            })
-
-            .listen(".SessionFinished", (e) => {
-                const finalBoard = Array.isArray(e.leaderboard)
-                    ? e.leaderboard
-                    : leaderboard;
-
-                setLeaderboard(finalBoard);
-
-                const me = finalBoard?.find(
-                    (p) => Number(p.id) === Number(peserta.id)
+            .listen(".SessionFinished", () => {
+                // score is already stored in DB → trust localStorage
+                const latestPeserta = JSON.parse(
+                    localStorage.getItem("peserta")
                 );
 
-                setFinalScore(me?.total_skor ?? 0);
+                setFinalScore(latestPeserta?.total_skor ?? 0);
                 setQuizFinished(true);
                 setCurrentQuestion(null);
             });
@@ -125,7 +113,7 @@ export default function StudentQuiz() {
             a: "bg-red-500",
             b: "bg-blue-500",
             c: "bg-orange-500",
-            d: "bg-green-500",
+            d: "bg-black-500",
         }[key];
 
         if (status === "idle") return base;
@@ -155,11 +143,11 @@ export default function StudentQuiz() {
                         Terima kasih sudah berpartisipasi
                     </p>
 
-                    <div className="text-5xl font-bold text-blue-600 my-6">
+                    {/* <div className="text-5xl font-bold text-blue-600 my-6">
                         {finalScore}
-                    </div>
+                    </div> */}
 
-                    <p className="text-gray-500">Skor Akhir</p>
+                    {/* <p className="text-gray-500">Skor Akhir</p> */}
 
                     <button
                         className="mt-6 bg-blue-600 text-white px-6 py-2 rounded"
