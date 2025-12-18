@@ -37,6 +37,8 @@ class KuisController extends Controller
             'tampilkan_peringkat' => 'boolean'
         ]);
 
+        unset($validated['total_waktu']);
+
         $kuis = Kuis::create([
             'creator_id' => $request->user()->id,
             ...$validated
@@ -74,6 +76,7 @@ class KuisController extends Controller
         ]);
 
         foreach ($validated['pertanyaan'] as $index => $p) {
+
             Pertanyaan::create([
                 'kuis_id' => $kuis->id,
                 'urutan' => $index + 1,
@@ -90,6 +93,8 @@ class KuisController extends Controller
     public function update(Request $request, $id)
     {
         $kuis = Kuis::findOrFail($id);
+
+        unset($request['total_waktu']);
 
         $kuis->update($request->all());
 
