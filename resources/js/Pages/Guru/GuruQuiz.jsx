@@ -105,6 +105,16 @@ export default function GuruQuiz() {
             <div className="min-h-screen bg-gray-100 flex items-center justify-center px-4">
                 <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl w-full">
 
+                    <div className="flex justify-between mb-6">
+                        <button
+                            onClick={() => window.location.href = "/dashboard"}
+                            className="text-blue-700"
+                        >
+                            ← Kembali
+                        </button>
+
+                    </div>
+
                     <h1 className="text-2xl font-bold mb-4">Kontrol Kuis</h1>
 
                     <div className="bg-blue-50 border rounded p-4 mb-4">
@@ -127,11 +137,10 @@ export default function GuruQuiz() {
                                 <button
                                     onClick={handleStartQuiz}
                                     disabled={starting}
-                                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg text-lg ${
-                                        starting
-                                            ? "bg-gray-400"
-                                            : "bg-green-600 hover:bg-green-700 text-white"
-                                    }`}
+                                    className={`inline-flex items-center gap-2 px-6 py-3 rounded-lg text-lg ${starting
+                                        ? "bg-gray-400"
+                                        : "bg-green-600 hover:bg-green-700 text-white"
+                                        }`}
                                 >
                                     <FaPlay />
                                     {starting ? "Memulai..." : "Mulai Kuis"}

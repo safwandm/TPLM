@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { API } from "@/lib/api";
+import logo from "@/assets/logo.png";
 
 export default function JoinQuiz() {
     const [name, setName] = useState("");
@@ -52,7 +53,7 @@ export default function JoinQuiz() {
 
                 {/* Header */}
                 <div className="flex flex-col items-center mb-6">
-                    <img src="/logo.png" alt="Logo" className="w-24 h-24 mb-3" />
+                    <img src="{logo}" alt="Logo" className="w-24 h-24 mb-3" />
                     <h1 className="text-xl font-semibold text-gray-800">
                         Ayo Ikut Kuis! 🚀
                     </h1>
@@ -105,7 +106,7 @@ export default function JoinQuiz() {
                             : "bg-gray-400"
                             }`}
                     >
-                        {loading ? "Loading..." : "Mulai Kuis"}
+                        {loading ? "Loading..." : "Ikut Kuis"}
                     </button>
                 </form>
 

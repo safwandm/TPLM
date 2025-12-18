@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { API } from "@/lib/api";
+import logo from "@/assets/logo.png";
 
 export default function Login() {
     const [email, setEmail] = useState("");
@@ -65,7 +66,9 @@ export default function Login() {
             <div className="bg-white w-full max-w-md p-8 rounded-xl shadow-lg">
 
                 <div className="flex flex-col items-center mb-6">
-                    <img src="/logo.png" alt="Logo" className="w-24 h-24 mb-3" />
+                    <img src={logo}
+                        alt="Logo" className="w-24 h-24 mb-3" />
+
                     <h1 className="text-xl font-semibold text-gray-800">
                         Platform Kuis
                     </h1>

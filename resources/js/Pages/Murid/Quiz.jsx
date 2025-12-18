@@ -112,7 +112,7 @@ export default function StudentQuiz() {
             a: "bg-red-500",
             b: "bg-blue-500",
             c: "bg-orange-500",
-            d: "bg-black-500",
+            d: "bg-purple-500",
         }[key];
 
         if (status === "idle") return base;
