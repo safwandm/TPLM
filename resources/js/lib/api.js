@@ -17,6 +17,7 @@ export const API = {
     ===================== */
     teacher: {
         createQuizFull: `${API_BASE_URL}/teacher/kuis/full`,
+        deleteQuiz: (quizId) => `${API_BASE_URL}/teacher/kuis/${quizId}`,
         allQuiz: `${API_BASE_URL}/teacher/kuis`,
         quiz: (quizId) => `${API_BASE_URL}/teacher/kuis/${quizId}`,
 

@@ -22,7 +22,6 @@ export default function CreateQuiz() {
     const [qTimer, setQTimer] = useState("1");
 
     function addQuestion() {
-        console.log("ADD QUESTION CLICKED");
 
         if (!qText.trim()) {
             alert("Pertanyaan tidak boleh kosong");
@@ -135,7 +134,6 @@ export default function CreateQuiz() {
                     {/* Top Buttons */}
                     <div className="flex justify-between mb-6">
                         <button
-                            // onClick={() => router.visit("/dashboard")}
                             onClick={() => window.location.href = "/dashboard"}
                             className="text-blue-700"
                         >

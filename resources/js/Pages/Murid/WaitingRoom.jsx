@@ -36,7 +36,6 @@ export default function WaitingRoom({ id }) {
                 setPesertaList(data.pesertas?.map(p => p.nama) || []);
 
                 if (data.status === "running") {
-                    // IMPORTANT: id === sesi_kuis.id
                     window.location.href = `/kuis/${id}`;
                 }
 

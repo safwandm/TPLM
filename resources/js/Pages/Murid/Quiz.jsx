@@ -42,7 +42,6 @@ export default function StudentQuiz() {
             })
 
             .listen(".SessionFinished", () => {
-                // score is already stored in DB → trust localStorage
                 const latestPeserta = JSON.parse(
                     localStorage.getItem("peserta")
                 );

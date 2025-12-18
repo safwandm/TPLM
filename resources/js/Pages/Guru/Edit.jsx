@@ -3,7 +3,7 @@ import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
 import { API } from "@/lib/api";
 
-export default function Edit() {
+export default function EditQuiz() {
     const editFormRef = useRef(null);
 
     /* ===============================

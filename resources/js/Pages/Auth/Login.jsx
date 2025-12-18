@@ -8,14 +8,6 @@ export default function Login() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    // if (localStorage.getItem("auth_token")) {
-    //     localStorage.removeItem("auth_token");
-    // }
-
-    // if (localStorage.getItem("auth_user")) {
-    //     localStorage.removeItem("auth_user");
-    // }
-
     async function handleLogin(e) {
         e.preventDefault();
         setLoading(true);
@@ -33,18 +25,12 @@ export default function Login() {
 
             const data = await response.json();
 
-            alert(JSON.stringify(data));
-
             if (!response.ok) {
-                // Laravel validation / auth error
                 throw data;
             }
 
-            // ✅ Save auth
             localStorage.setItem("auth_token", data.token);
             localStorage.setItem("auth_user", JSON.stringify(data.user));
-
-            console.log("Logged in user:", data.user);
 
             if (data.roles.includes("admin")) {
                 window.location.href = "/admin";
@@ -56,12 +42,10 @@ export default function Login() {
                 return;
             }
 
-            // fallback (student, etc.)
             window.location.href = "/";
 
 
         } catch (err) {
-            // Laravel error formats handling
             if (err?.errors?.email) {
                 setError(err.errors.email[0]);
             } else if (err?.message) {

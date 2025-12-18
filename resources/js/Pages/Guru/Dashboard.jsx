@@ -40,8 +40,6 @@ export default function Dashboard() {
                     }
                 );
 
-                console.log("Fetch quizzes response:", res);
-
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}`);
                 }
@@ -91,7 +89,6 @@ export default function Dashboard() {
 
             const data = await res.json();
 
-            // 👉 Redirect to waiting room
             window.location.href = `/sesi/${data.sesi.id}`;
 
         } catch (err) {
@@ -106,14 +103,38 @@ export default function Dashboard() {
         alert("Exported quiz (mock)");
     }
 
-    function handleDelete(id) {
-        if (!confirm("Hapus kuis?")) return;
+    async function handleDelete(id) {
+        const token = localStorage.getItem("auth_token");
+        if (!token) return;
+
+        const confirmed = window.confirm(
+            "Yakin ingin menghapus kuis ini?\nSemua soal dan sesi terkait akan ikut terhapus."
+        );
+
+        if (!confirmed) return;
 
         setLoadingId(id);
-        setTimeout(() => {
-            setQuizzes((q) => q.filter((x) => x.id !== id));
+
+        try {
+            const res = await fetch(API.teacher.deleteQuiz(id), {
+                method: "DELETE",
+                headers: {
+                    Accept: "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+
+            if (!res.ok) {
+                throw new Error("Gagal menghapus kuis");
+            }
+
+            setQuizzes((prev) => prev.filter((q) => q.id !== id));
+        } catch (err) {
+            console.error("Delete quiz error:", err);
+            alert("Tidak bisa menghapus kuis");
+        } finally {
             setLoadingId(null);
-        }, 600);
+        }
     }
 
     /* =====================================
