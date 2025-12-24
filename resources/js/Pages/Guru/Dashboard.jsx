@@ -25,7 +25,7 @@ export default function Dashboard() {
     ===================================== */
     useEffect(() => {
         const token = localStorage.getItem("auth_token");
-        if (!token) return;
+        if (token == null) return;
 
         async function fetchQuizzes() {
             try {

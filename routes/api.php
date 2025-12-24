@@ -1,10 +1,10 @@
 <?php
 
-use App\Http\Controllers\KuisController;
-use App\Http\Controllers\PertanyaanController;
-use App\Http\Controllers\SesiKuisController;
-use App\Http\Controllers\SesiPesertaController;
-use App\Http\Controllers\UserController;
+use App\Http\Controllers\Api\KuisController;
+use App\Http\Controllers\Api\PertanyaanController;
+use App\Http\Controllers\Api\SesiKuisController;
+use App\Http\Controllers\Api\SesiPesertaController;
+use App\Http\Controllers\Api\UserController;
 use App\Models\SesiKuis;
 use App\Models\SesiPeserta;
 use Illuminate\Support\Facades\Route;
@@ -62,6 +62,7 @@ Route::middleware('auth:sanctum')->get('/current-user', function (Request $reque
     ]);
 });
 
+
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::post('/user/create-user', [UserController::class, 'create_user']);
     Route::put('/user/{id}/replace-password', [UserController::class, 'replace_password']);
@@ -82,8 +83,6 @@ Route::prefix('teacher')->middleware(['auth:sanctum', 'role:teacher|admin'])->gr
     Route::post('/pertanyaan', [PertanyaanController::class, 'store']);
     Route::put('/pertanyaan/{id}', [PertanyaanController::class, 'update']);
     Route::delete('/pertanyaan/{id}', [PertanyaanController::class, 'destroy']);
-
-
 });
 
 Route::prefix('sesi')->middleware(['auth:sanctum', 'role:teacher|admin'])->group(function () {

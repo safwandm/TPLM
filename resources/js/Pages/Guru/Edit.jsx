@@ -3,7 +3,7 @@ import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
 import { API } from "@/lib/api";
 
-export default function EditQuiz() {
+export default function EditQuiz({quizId}) {
     const editFormRef = useRef(null);
 
     /* ===============================
@@ -12,11 +12,6 @@ export default function EditQuiz() {
     const addedQuestionsRef = useRef([]);
     const updatedQuestionsRef = useRef(new Map());
     const deletedQuestionIdsRef = useRef(new Set());
-
-    /* ===============================
-       GET QUIZ ID
-    =============================== */
-    const quizId = Number(window.location.pathname.split("/")[2]);
 
     /* ===============================
        STATE

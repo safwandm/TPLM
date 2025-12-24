@@ -3,14 +3,27 @@ import { API } from "@/lib/api";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
 
+/* =====================================================
+   COMPONENT
+===================================================== */
 export default function CreateQuiz() {
+
+    /* =====================================================
+       QUIZ SETTINGS STATE
+    ===================================================== */
     const [title, setTitle] = useState("");
     const [duration, setDuration] = useState("");
     const [showAnswers, setShowAnswers] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
 
+    /* =====================================================
+       QUESTIONS COLLECTION
+    ===================================================== */
     const [questions, setQuestions] = useState([]);
 
+    /* =====================================================
+       CURRENT QUESTION INPUT STATE
+    ===================================================== */
     const [qText, setQText] = useState("");
     const [qImage, setQImage] = useState("");
     const [qMath, setQMath] = useState("");
@@ -21,24 +34,50 @@ export default function CreateQuiz() {
     const [correct, setCorrect] = useState("a");
     const [qTimer, setQTimer] = useState("1");
 
-    function addQuestion() {
-
+    /* =====================================================
+       VALIDATE QUESTION INPUT
+    ===================================================== */
+    function validateQuestion() {
         if (!qText.trim()) {
             alert("Pertanyaan tidak boleh kosong");
-            return;
+            return false;
         }
 
         if (!optA.trim() || !optB.trim() || !optC.trim() || !optD.trim()) {
             alert("Semua opsi jawaban harus diisi");
-            return;
+            return false;
         }
 
         if (qTimer && isNaN(Number(qTimer))) {
             alert("Batas waktu harus berupa angka");
-            return;
+            return false;
         }
 
-        const newQ = {
+        return true;
+    }
+
+    /* =====================================================
+       RESET QUESTION FORM
+    ===================================================== */
+    function resetQuestionForm() {
+        setQText("");
+        setQImage("");
+        setQMath("");
+        setOptA("");
+        setOptB("");
+        setOptC("");
+        setOptD("");
+        setCorrect("a");
+        setQTimer("");
+    }
+
+    /* =====================================================
+       ADD QUESTION
+    ===================================================== */
+    function addQuestion() {
+        if (!validateQuestion()) return;
+
+        const newQuestion = {
             id: Date.now(),
             text: qText,
             image: qImage,
@@ -53,29 +92,32 @@ export default function CreateQuiz() {
             timer: qTimer ? Number(qTimer) : null,
         };
 
-        setQuestions([...questions, newQ]);
-
-        setQText("");
-        setQImage("");
-        setQMath("");
-        setOptA("");
-        setOptB("");
-        setOptC("");
-        setOptD("");
-        setCorrect("a");
-        setQTimer("");
+        setQuestions((prev) => [...prev, newQuestion]);
+        resetQuestionForm();
     }
 
-    async function saveQuiz() {
+    /* =====================================================
+       VALIDATE QUIZ BEFORE SAVE
+    ===================================================== */
+    function validateQuiz() {
         if (!title.trim()) {
             alert("Judul kuis wajib diisi");
-            return;
+            return false;
         }
 
         if (questions.length === 0) {
             alert("Minimal harus ada 1 pertanyaan");
-            return;
+            return false;
         }
+
+        return true;
+    }
+
+    /* =====================================================
+       SAVE QUIZ
+    ===================================================== */
+    async function saveQuiz() {
+        if (!validateQuiz()) return;
 
         const payload = {
             judul: title,
@@ -101,7 +143,7 @@ export default function CreateQuiz() {
             const res = await fetch(API.teacher.createQuizFull, {
                 method: "POST",
                 headers: {
-                    "Accept": "application/json",
+                    Accept: "application/json",
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
@@ -109,7 +151,7 @@ export default function CreateQuiz() {
             });
 
             if (!res.ok) {
-                const text = await res.text(); 
+                const text = await res.text();
                 console.error("Server response:", text);
                 alert("Gagal menyimpan kuis");
                 return;
@@ -117,12 +159,14 @@ export default function CreateQuiz() {
 
             alert("Kuis berhasil dibuat");
             window.location.href = "/dashboard";
-
         } catch (err) {
             console.error("Fetch error:", err);
         }
     }
 
+    /* =====================================================
+       UI
+    ===================================================== */
     return (
         <ProtectedLayout allowedRoles={["teacher"]}>
             <div className="max-w-4xl mx-auto space-y-8">
@@ -131,7 +175,6 @@ export default function CreateQuiz() {
                 {/* CARD: Pengaturan Kuis */}
                 {/* -------------------------------------- */}
                 <div className="bg-white p-6 rounded-lg shadow">
-                    {/* Top Buttons */}
                     <div className="flex justify-between mb-6">
                         <button
                             onClick={() => window.location.href = "/dashboard"}
@@ -150,7 +193,6 @@ export default function CreateQuiz() {
 
                     <h2 className="font-semibold text-lg mb-3">Pengaturan Kuis</h2>
                     <div className="space-y-4 mb-4">
-                        {/* Title */}
                         <div>
                             <label className="text-sm font-medium text-gray-600">Judul Kuis</label>
                             <input
@@ -161,9 +203,11 @@ export default function CreateQuiz() {
                                 onChange={(e) => setTitle(e.target.value)}
                             />
                         </div>
-                        {/* Duration */}
+
                         <div>
-                            <label className="text-sm font-medium text-gray-600">Total Waktu Kuis (detik)</label>
+                            <label className="text-sm font-medium text-gray-600">
+                                Total Waktu Kuis (detik)
+                            </label>
                             <input
                                 type="number"
                                 className="w-full border p-2 rounded mt-1"
@@ -173,7 +217,6 @@ export default function CreateQuiz() {
                             />
                         </div>
 
-                        {/* Checkboxes */}
                         <div className="flex gap-6 mt-4">
                             <label className="flex items-center gap-2">
                                 <input
@@ -203,8 +246,6 @@ export default function CreateQuiz() {
                     <h2 className="font-semibold text-lg mb-3">Tambah Pertanyaan</h2>
 
                     <div className="space-y-4">
-
-                        {/* Question text */}
                         <div>
                             <label className="text-sm font-medium text-gray-600">Pertanyaan</label>
                             <textarea
@@ -215,9 +256,10 @@ export default function CreateQuiz() {
                             />
                         </div>
 
-                        {/* Image */}
                         <div>
-                            <label className="text-sm font-medium text-gray-600">URL Gambar (opsional)</label>
+                            <label className="text-sm font-medium text-gray-600">
+                                URL Gambar (opsional)
+                            </label>
                             <input
                                 type="text"
                                 className="w-full border p-2 rounded mt-1"
@@ -227,9 +269,10 @@ export default function CreateQuiz() {
                             />
                         </div>
 
-                        {/* Math */}
                         <div>
-                            <label className="text-sm font-medium text-gray-600">Persamaan Matematika</label>
+                            <label className="text-sm font-medium text-gray-600">
+                                Persamaan Matematika
+                            </label>
                             <input
                                 type="text"
                                 className="w-full border p-2 rounded mt-1"
@@ -239,9 +282,10 @@ export default function CreateQuiz() {
                             />
                         </div>
 
-                        {/* Options */}
                         <div>
-                            <label className="text-sm font-medium text-gray-600">Pilihan Jawaban</label>
+                            <label className="text-sm font-medium text-gray-600">
+                                Pilihan Jawaban
+                            </label>
                             <div className="grid grid-cols-2 gap-3 mt-1">
                                 <input className="border p-2 rounded" placeholder="Masukkan pilihan a" value={optA} onChange={(e) => setOptA(e.target.value)} />
                                 <input className="border p-2 rounded" placeholder="Masukkan pilihan b" value={optB} onChange={(e) => setOptB(e.target.value)} />
@@ -250,10 +294,11 @@ export default function CreateQuiz() {
                             </div>
                         </div>
 
-                        {/* Correct answer + timer */}
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-sm font-medium text-gray-600">Kunci Jawaban</label>
+                                <label className="text-sm font-medium text-gray-600">
+                                    Kunci Jawaban
+                                </label>
                                 <select
                                     className="border p-2 rounded w-full mt-1"
                                     value={correct}
@@ -267,7 +312,9 @@ export default function CreateQuiz() {
                             </div>
 
                             <div>
-                                <label className="text-sm font-medium text-gray-600">Batas Waktu per Soal (detik)</label>
+                                <label className="text-sm font-medium text-gray-600">
+                                    Batas Waktu per Soal (detik)
+                                </label>
                                 <input
                                     type="number"
                                     min={1}
@@ -297,8 +344,6 @@ export default function CreateQuiz() {
                     <div className="space-y-4">
                         {questions.map((q, index) => (
                             <div key={q.id} className="border rounded-lg p-4 shadow-sm bg-white">
-
-                                {/* Header */}
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="font-medium text-gray-800">
                                         {index + 1}. {q.text}
@@ -306,7 +351,9 @@ export default function CreateQuiz() {
 
                                     <button
                                         onClick={() =>
-                                            setQuestions(questions.filter((x) => x.id !== q.id))
+                                            setQuestions((prev) =>
+                                                prev.filter((x) => x.id !== q.id)
+                                            )
                                         }
                                         className="text-red-600 hover:text-red-800"
                                     >
@@ -315,7 +362,10 @@ export default function CreateQuiz() {
                                 </div>
 
                                 {q.image && (
-                                    <img src={q.image} className="max-w-xs rounded border mb-3" />
+                                    <img
+                                        src={q.image}
+                                        className="max-w-xs rounded border mb-3"
+                                    />
                                 )}
 
                                 {q.math && (
@@ -328,10 +378,11 @@ export default function CreateQuiz() {
                                     {Object.entries(q.options).map(([key, value]) => (
                                         <div
                                             key={key}
-                                            className={`border px-3 py-2 rounded ${key === q.correct
-                                                ? "bg-green-100 border-green-600"
-                                                : "bg-gray-50"
-                                                }`}
+                                            className={`border px-3 py-2 rounded ${
+                                                key === q.correct
+                                                    ? "bg-green-100 border-green-600"
+                                                    : "bg-gray-50"
+                                            }`}
                                         >
                                             <span className="font-semibold uppercase">{key}.</span>{" "}
                                             {value || <span className="opacity-50">—</span>}
@@ -340,7 +391,8 @@ export default function CreateQuiz() {
                                 </div>
 
                                 <div className="text-xs text-gray-500 mt-3">
-                                    Batas waktu: {q.timer ? `${q.timer} detik` : "Tidak ada batas waktu"}
+                                    Batas waktu:{" "}
+                                    {q.timer ? `${q.timer} detik` : "Tidak ada batas waktu"}
                                 </div>
                             </div>
                         ))}
