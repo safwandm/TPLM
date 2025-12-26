@@ -1,20 +1,11 @@
 import { API } from "@/lib/api";
+import { router } from "@inertiajs/react";
 
 export default function Header({ user }) {
     async function handleLogout() {
 
-        const token = localStorage.getItem("auth_token");
-        await fetch(API.auth.logout, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${token}`
-            }
-        });
+        router.post("/logout");
 
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("auth_user");
-
-        window.location.href = "/login";
     }
 
     return (

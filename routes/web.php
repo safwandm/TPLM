@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Web\Auth\LoginController;
 use Inertia\Inertia;
 
 Route::get('/', function () {
@@ -18,7 +19,14 @@ Route::get('/quizzes/{id}/edit', function ($id) {
     ]);
 });
 
-Route::get('/login', fn () => Inertia::render('Auth/Login'));
+Route::get('/login', [LoginController::class, 'show'])->name('login');
+Route::post('/login', [LoginController::class, 'store']);
+Route::post('/logout', [LoginController::class, 'destroy']);
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/dashboard', fn () => Inertia::render('Guru/Dashboard'));
+});
+
 Route::get('/dashboard', fn () => Inertia::render('Guru/Dashboard'));
 Route::get('/sesi/{id}', fn ($id) => Inertia::render('Guru/GuruQuiz', ['id' => $id]));
 Route::get('/menunggu/{id}', fn ($id) => Inertia::render('Murid/WaitingRoom', ['id' => $id]));

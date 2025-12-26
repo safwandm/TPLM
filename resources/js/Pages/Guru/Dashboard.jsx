@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
+import AppLayout from "@/Layouts/AppLayout";
+
 import {
     FaPlus,
     FaEdit,
@@ -10,7 +12,7 @@ import {
 import { API } from "@/lib/api";
 
 export default function Dashboard() {
-    const user = JSON.parse(localStorage.getItem("auth_user"));
+    // const user = JSON.parse(localStorage.getItem("auth_user"));
 
     /* =====================================
        QUIZ STATE
@@ -153,15 +155,15 @@ export default function Dashboard() {
        UI
     ===================================== */
     return (
-        <ProtectedLayout allowedRoles={["teacher"]}>
+        < AppLayout >
             <div>
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-xl font-semibold">Kuis saya</h2>
+                        {/* <h2 className="text-xl font-semibold">Kuis saya</h2>
                         <p className="text-sm text-gray-600">
                             Login sebagai{" "}
                             <span className="font-medium">{user.name}</span>
-                        </p>
+                        </p> */}
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -274,6 +276,6 @@ export default function Dashboard() {
                     </div>
                 )}
             </div>
-        </ProtectedLayout>
+        </AppLayout>
     );
 }

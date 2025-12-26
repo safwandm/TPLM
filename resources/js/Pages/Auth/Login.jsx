@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { API } from "@/lib/api";
 import logo from "@/assets/logo.png";
+import { router, usePage } from "@inertiajs/react";
 
 export default function Login() {
     /* ================================
@@ -10,59 +11,24 @@ export default function Login() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
+    // const [error, setError] = useState("");
 
     const canLogin = email.length > 0 && password.length > 0;
 
     /* ================================
        HANDLERS
     ================================= */
-    async function handleLogin(e) {
+    function handleLogin(e) {
         e.preventDefault();
         setLoading(true);
-        setError("");
 
-        try {
-            const response = await fetch(API.auth.login, {
-                method: "POST",
-                headers: {
-                    "Accept": "application/json",
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ email, password }),
-            });
-
-            const data = await response.json();
-
-            if (!response.ok) {
-                throw data;
+        router.post(
+            "/login",
+            { email, password },
+            {
+                onFinish: () => setLoading(false),
             }
-
-            localStorage.setItem("auth_token", data.token);
-            localStorage.setItem("auth_user", JSON.stringify(data.user));
-
-            if (data.roles.includes("admin")) {
-                window.location.href = "/admin";
-                return;
-            }
-
-            if (data.roles.includes("teacher")) {
-                window.location.href = "/dashboard";
-                return;
-            }
-
-            window.location.href = "/";
-        } catch (err) {
-            if (err?.errors?.email) {
-                setError(err.errors.email[0]);
-            } else if (err?.message) {
-                setError(err.message);
-            } else {
-                setError("Login gagal");
-            }
-        } finally {
-            setLoading(false);
-        }
+        );
     }
 
     /* ================================
@@ -87,11 +53,11 @@ export default function Login() {
                 </div>
 
                 {/* Error */}
-                {error && (
+                {/* {error && (
                     <div className="bg-red-100 border border-red-400 text-red-600 p-3 rounded mb-4">
                         {error}
                     </div>
-                )}
+                )} */}
 
                 {/* Form */}
                 <form onSubmit={handleLogin} className="space-y-4">
