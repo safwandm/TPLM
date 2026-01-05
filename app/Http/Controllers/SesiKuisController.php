@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Events\QuizStarting;
 use App\Events\UpdateLeaderboard;

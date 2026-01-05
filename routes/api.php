@@ -1,12 +1,10 @@
 <?php
 
-use App\Http\Controllers\Api\KuisController;
-use App\Http\Controllers\Api\PertanyaanController;
-use App\Http\Controllers\Api\SesiKuisController;
-use App\Http\Controllers\Api\SesiPesertaController;
-use App\Http\Controllers\Api\UserController;
-use App\Models\SesiKuis;
-use App\Models\SesiPeserta;
+use App\Http\Controllers\KuisController;
+use App\Http\Controllers\PertanyaanController;
+use App\Http\Controllers\SesiKuisController;
+use App\Http\Controllers\SesiPesertaController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use Illuminate\Http\Request;

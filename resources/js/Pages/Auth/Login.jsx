@@ -23,23 +23,27 @@ export default function Login() {
         setError("");
 
         try {
-            const response = await fetch(API.auth.login, {
+            const csrfToken = document
+                .cookie
+                .split("; ")
+                .find(row => row.startsWith("XSRF-TOKEN="))
+                ?.split("=")[1];
+
+            const response = await fetch("/web/login", {
                 method: "POST",
                 headers: {
                     "Accept": "application/json",
                     "Content-Type": "application/json",
+                    "X-XSRF-TOKEN": decodeURIComponent(csrfToken),
                 },
+                credentials: "include",
                 body: JSON.stringify({ email, password }),
             });
 
             const data = await response.json();
+            console.log("Login response data:", data);
 
-            if (!response.ok) {
-                throw data;
-            }
-
-            localStorage.setItem("auth_token", data.token);
-            localStorage.setItem("auth_user", JSON.stringify(data.user));
+            if (!response.ok) throw data;
 
             if (data.roles.includes("admin")) {
                 window.location.href = "/admin";
@@ -53,13 +57,7 @@ export default function Login() {
 
             window.location.href = "/";
         } catch (err) {
-            if (err?.errors?.email) {
-                setError(err.errors.email[0]);
-            } else if (err?.message) {
-                setError(err.message);
-            } else {
-                setError("Login gagal");
-            }
+            setError(err?.message || "Login gagal");
         } finally {
             setLoading(false);
         }
@@ -132,8 +130,8 @@ export default function Login() {
                         type="submit"
                         disabled={!canLogin || loading}
                         className={`w-full py-2 text-white rounded ${canLogin && !loading
-                                ? "bg-blue-600 hover:bg-blue-700"
-                                : "bg-gray-400"
+                            ? "bg-blue-600 hover:bg-blue-700"
+                            : "bg-gray-400"
                             }`}
                     >
                         {loading ? "Loading..." : "Login"}

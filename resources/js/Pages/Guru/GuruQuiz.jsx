@@ -18,9 +18,16 @@ export default function GuruQuiz() {
     useEffect(() => {
         const channel = window.Echo.channel(`sesi.${id}`);
 
+
+        // Logging for debugging purposes
+        console.log("Listening to channel:", `sesi.${id}`);
+        console.log("Current status:", status);
+        console.log("channel:", channel);
+
         channel
             .listen(".ParticipantsUpdated", e => {
                 setParticipants(e.peserta);
+                console.log("Participants updated:", e.peserta);
             })
 
             .listen(".QuizStarting", () => {

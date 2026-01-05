@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers;
 
 use App\Events\UpdateLeaderboard;
 use App\Models\JawabanPeserta;

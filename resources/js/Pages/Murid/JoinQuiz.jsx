@@ -35,6 +35,9 @@ export default function JoinQuiz() {
                 })
             );
 
+            // Hasil fetch sukses
+            alert("Join quiz successful:", data);
+
             window.location.href = `/menunggu/${data.peserta.session_id}`;
         } catch (err) {
             if (err?.message) setError(err.message);
