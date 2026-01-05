@@ -54,7 +54,7 @@ class SesiKuisController extends Controller
         }
 
         do {
-            $kode = strtoupper(str()->random(6));
+            $kode = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         } while (SesiKuis::where('kode', $kode)->exists());
 
         $session = SesiKuis::create([
