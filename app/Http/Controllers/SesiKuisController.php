@@ -13,7 +13,6 @@ use App\Models\SesiKuis;
 use App\Models\Kuis;
 use App\Models\Pertanyaan;
 use App\Jobs\ActivateQuestion;
-use App\Jobs\EndQuestion;
 use App\Models\JawabanPeserta;
 use App\Models\SesiPeserta;
 
@@ -40,6 +39,17 @@ class SesiKuisController extends Controller
         return response()->json($sesi);
     }
 
+    public function config($id)
+    {
+        $session = SesiKuis::with('kuis')->findOrFail($id);
+
+        return response()->json([
+            'tampilkan_jawaban_benar' => (bool) $session->kuis->tampilkan_jawaban_benar,
+            'tampilkan_peringkat' => (bool) $session->kuis->tampilkan_peringkat,
+        ]);
+    }
+
+
     public function create(Request $request)
     {
         $request->validate([
@@ -60,7 +70,9 @@ class SesiKuisController extends Controller
         $session = SesiKuis::create([
             'kuis_id' => $kuis->id,
             'kode' => $kode,
-            'status' => 'waiting', 
+            'status' => 'waiting',
+            'tampilkan_jawaban_benar' => $kuis->tampilkan_jawaban_benar,
+            'tampilkan_peringkat' => $kuis->tampilkan_peringkat,
         ]);
 
         return response()->json([

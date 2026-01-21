@@ -1,32 +1,149 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\LoginController;
+use Illuminate\Http\Request;
+
 use Inertia\Inertia;
 
-Route::get('/', function () {
-    return Inertia::render('Murid/JoinQuiz');
+use App\Http\Controllers\LoginController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\KuisController;
+use App\Http\Controllers\PertanyaanController;
+use App\Http\Controllers\SesiKuisController;
+use App\Http\Controllers\SesiPesertaController;
+
+/*
+|--------------------------------------------------------------------------
+| PUBLIC PAGES (INERTIA VIEWS)
+|--------------------------------------------------------------------------
+*/
+
+Route::middleware(['auth', 'role:teacher|admin'])->group(function ()  {
+
+
 });
 
+Route::get('/', fn () =>
+    Inertia::render('Murid/JoinQuiz')
+);
 
-Route::get('/quizzes/create', action: function () {
-    return Inertia::render('Guru/Create');
-});
+Route::get('/login', fn () =>
+    Inertia::render('Auth/Login')
+);
 
-Route::get('/quizzes/{id}/edit', function ($id) {
-    return Inertia::render('Guru/Edit', [
-        'quizId' => $id  
+Route::get('/dashboard', fn () =>
+    Inertia::render('Guru/Dashboard')
+);
+
+Route::get('/admin', fn () =>
+    Inertia::render('Admin')
+);
+
+Route::get('/quizzes/create', fn () =>
+    Inertia::render('Guru/Create')
+);
+
+Route::get('/quizzes/{id}/edit', fn ($id) =>
+    Inertia::render('Guru/Edit', ['quizId' => $id])
+);
+
+Route::get('/sesi/{id}', fn ($id) =>
+    Inertia::render('Guru/GuruQuiz', ['id' => $id])
+);
+
+Route::get('/menunggu/{id}', fn ($id) =>
+    Inertia::render('Murid/WaitingRoom', ['id' => $id])
+);
+
+Route::get('/kuis/{id}', fn ($id) =>
+    Inertia::render('Murid/Quiz', ['id' => $id])
+);
+
+/*
+|--------------------------------------------------------------------------
+| AUTH (SESSION / COOKIE)
+|--------------------------------------------------------------------------
+*/
+
+Route::post('/web/login', [LoginController::class, 'store']);
+Route::post('/web/logout', [LoginController::class, 'logout']);
+
+Route::middleware('auth')->get('/web/current-user', function (Request $request) {
+    return response()->json([
+        'user'  => $request->user(),
+        'roles' => $request->user()->getRoleNames(),
     ]);
 });
 
-Route::get('/login', fn () => Inertia::render('Auth/Login'));
+/*
+|--------------------------------------------------------------------------
+| ADMIN (SESSION AUTH)
+|--------------------------------------------------------------------------
+*/
 
-Route::post('web/login', [LoginController::class, 'store']);
-Route::post('web/logout', [LoginController::class, 'logout']);
+Route::prefix('web/admin')
+    ->middleware(['auth', 'role:admin'])
+    ->group(function () {
 
-Route::get('/dashboard', fn () => Inertia::render('Guru/Dashboard'));
-Route::get('/sesi/{id}', fn ($id) => Inertia::render('Guru/GuruQuiz', ['id' => $id]));
-Route::get('/menunggu/{id}', fn ($id) => Inertia::render('Murid/WaitingRoom', ['id' => $id]));
-Route::get('/kuis/{id}', fn ($id) => Inertia::render('Murid/Quiz', ['id' => $id]));
-Route::get('/admin', fn () => Inertia::render('Admin'));
+        Route::post('/user/create-user', [UserController::class, 'create_user']);
+        Route::put('/user/{id}/replace-password', [UserController::class, 'replace_password']);
+        Route::delete('/user/{id}', [UserController::class, 'delete_user']);
+        Route::get('/users', [UserController::class, 'list_users']);
+    });
 
+/*
+|--------------------------------------------------------------------------
+| TEACHER / QUIZ (SESSION AUTH)
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('web/teacher')
+    ->middleware(['auth', 'role:teacher|admin'])
+    ->group(function () {
+
+        // KUIS
+        Route::get('/kuis', [KuisController::class, 'index']);
+        Route::post('/kuis', [KuisController::class, 'store']);
+        Route::post('/kuis/full', [KuisController::class, 'storeWithQuestions']);
+        Route::get('/kuis/{id}', [KuisController::class, 'show']);
+        Route::put('/kuis/{id}', [KuisController::class, 'update']);
+        Route::delete('/kuis/{id}', [KuisController::class, 'destroy']);
+
+        // HISTORY
+        Route::get('/kuis/{id}/history', [SesiKuisController::class, 'list_sesi']);
+
+        // QUESTIONS
+        Route::post('/pertanyaan', [PertanyaanController::class, 'store']);
+        Route::put('/pertanyaan/{id}', [PertanyaanController::class, 'update']);
+        Route::delete('/pertanyaan/{id}', [PertanyaanController::class, 'destroy']);
+    });
+
+/*
+|--------------------------------------------------------------------------
+| SESI KUIS (SESSION AUTH)
+|--------------------------------------------------------------------------
+*/
+
+Route::prefix('web/sesi')
+    ->middleware(['auth', 'role:teacher|admin'])
+    ->group(function () {
+
+        Route::post('/', [SesiKuisController::class, 'create']);
+        Route::post('/{id}/start', [SesiKuisController::class, 'start']);
+        Route::get('/{id}', [SesiKuisController::class, 'detail_sesi']);
+    });
+
+/*
+|--------------------------------------------------------------------------
+| PUBLIC API-LIKE ROUTES (NO AUTH)
+|--------------------------------------------------------------------------
+| Shared by students (same as api.php)
+|--------------------------------------------------------------------------
+*/
+
+Route::post(
+    'web/sesi/{session_id}/pertanyaan/{question_id}/jawab',
+    [SesiKuisController::class, 'submit']
+);
+Route::get('/sesi/{id}/config', [SesiKuisController::class, 'config']);
+Route::post('/join/{kode}', [SesiPesertaController::class, 'join']);

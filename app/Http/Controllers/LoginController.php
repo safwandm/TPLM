@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use Illuminate\Support\Facades\Log;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -9,6 +10,11 @@ class LoginController extends Controller
 {
     public function store(Request $request)
     {
+
+        Log::info('Session ID', [$request->session()->getId()]);
+        Log::info('CSRF token (session)', [$request->session()->token()]);
+        Log::info('XSRF cookie', [$request->cookie('XSRF-TOKEN')]);
+
         $credentials = $request->validate([
             'email' => 'required|email',
             'password' => 'required',

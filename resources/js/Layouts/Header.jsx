@@ -1,20 +1,31 @@
-import { API } from "@/lib/api";
+import { webFetch } from "@/lib/webFetch";
+
 
 export default function Header({ user }) {
     async function handleLogout() {
 
-        const token = localStorage.getItem("auth_token");
-        await fetch(API.auth.logout, {
-            method: "POST",
-            headers: {
-                Authorization: `Bearer ${token}`
+        try {
+
+            function getCsrfToken() {
+                return decodeURIComponent(
+                    document.cookie
+                        .split("; ")
+                        .find(row => row.startsWith("XSRF-TOKEN="))
+                        ?.split("=")[1] ?? ""
+                );
             }
-        });
 
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("auth_user");
-
-        window.location.href = "/login";
+            await webFetch("/web/logout", {
+                headers: {
+                    "X-XSRF-TOKEN": getCsrfToken(),
+                },
+                method: "POST",
+            });
+        } catch (err) {
+            console.error("Logout failed", err);
+        } finally {
+            // window.location.href = "/login";
+        }
     }
 
     return (

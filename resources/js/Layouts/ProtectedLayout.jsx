@@ -1,45 +1,41 @@
 import AppLayout from "@/Layouts/AppLayout";
-import { useState, useEffect } from "react";
-import { API } from "@/lib/api";
-
+import { useEffect, useState } from "react";
+import { WebAPI } from "@/lib/api.web";
 
 export default function ProtectedLayout({ children, allowedRoles = [] }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         async function verify() {
-            const token = localStorage.getItem("auth_token");
-
-            if (!token) {
-                window.location.href = "/login";
-                return;
-            }
-
             try {
-                const res = await fetch(API.auth.currentUser, {
+                const res = await fetch(WebAPI.auth.currentUser, {
+                    method: "GET",
+                    credentials: "include",
                     headers: {
-                        Authorization: `Bearer ${token}`,
                         Accept: "application/json",
                     },
                 });
 
-                if (!res.ok) throw new Error("Unauthorized");
-
-                const data = await res.json();
-
-                if (
-                    allowedRoles.length > 0 &&
-                    !data.roles.some(role => allowedRoles.includes(role))
-                ) {
-                    alert("Tidak memiliki akses");
-                    window.location.href = "/login";
+                if (res.status === 401) {
+                    // window.location.href = "/login";
                     return;
                 }
 
+                const data = await res.json();
+
+                // if (
+                //     allowedRoles.length > 0 &&
+                //     !data.roles.some(role => allowedRoles.includes(role))
+                // ) {
+                //     alert("Tidak memiliki akses");
+                //     window.location.href = "/";
+                //     return;
+                // }
+
                 setLoading(false);
-            } catch {
-                localStorage.clear();
-                window.location.href = "/login";
+            } catch (err) {
+                console.error("Auth check failed", err);
+                // window.location.href = "/login";
             }
         }
 
@@ -47,7 +43,11 @@ export default function ProtectedLayout({ children, allowedRoles = [] }) {
     }, []);
 
     if (loading) {
-        return <div className="min-h-screen flex items-center justify-center">Checking authentication...</div>;
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                Checking authentication...
+            </div>
+        );
     }
 
     return <AppLayout>{children}</AppLayout>;

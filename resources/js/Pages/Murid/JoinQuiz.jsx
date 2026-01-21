@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { API } from "@/lib/api";
+import { WebAPI } from "@/lib/api.web";
+import { webFetch } from "@/lib/webFetch";
+
 import logo from "@/assets/logo.png";
 
 export default function JoinQuiz() {
@@ -8,17 +10,25 @@ export default function JoinQuiz() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    function getCsrfToken() {
+        return decodeURIComponent(
+            document.cookie
+                .split("; ")
+                .find(row => row.startsWith("XSRF-TOKEN="))
+                ?.split("=")[1] ?? ""
+        );
+    }
+
     async function handleJoin(e) {
         e.preventDefault();
         setLoading(true);
         setError("");
 
         try {
-            const res = await fetch(API.session.joinByCode(code), {
+            const res = await webFetch(WebAPI.session.joinByCode(code), {
                 method: "POST",
                 headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
+                    "X-XSRF-TOKEN": getCsrfToken(),
                 },
                 body: JSON.stringify({ nama: name }),
             });

@@ -1,7 +1,9 @@
 import { useState } from "react";
-import { API } from "@/lib/api";
-import ProtectedLayout from "@/Layouts/ProtectedLayout";
+import { WebAPI } from "@/lib/api.web";
+import { webFetch } from "@/lib/webFetch";
+import AppLayout from "@/Layouts/AppLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
+import ProtectedLayout from "../../Layouts/ProtectedLayout";
 
 /* =====================================================
    COMPONENT
@@ -137,15 +139,21 @@ export default function CreateQuiz() {
             })),
         };
 
-        const token = localStorage.getItem("auth_token");
-
         try {
-            const res = await fetch(API.teacher.createQuizFull, {
+
+            function getCsrfToken() {
+                return decodeURIComponent(
+                    document.cookie
+                        .split("; ")
+                        .find(row => row.startsWith("XSRF-TOKEN="))
+                        ?.split("=")[1] ?? ""
+                );
+            }
+
+            const res = await webFetch(WebAPI.teacher.createQuizFull, {
                 method: "POST",
                 headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
+                    "X-XSRF-TOKEN": getCsrfToken(),
                 },
                 body: JSON.stringify(payload),
             });
@@ -378,11 +386,10 @@ export default function CreateQuiz() {
                                     {Object.entries(q.options).map(([key, value]) => (
                                         <div
                                             key={key}
-                                            className={`border px-3 py-2 rounded ${
-                                                key === q.correct
-                                                    ? "bg-green-100 border-green-600"
-                                                    : "bg-gray-50"
-                                            }`}
+                                            className={`border px-3 py-2 rounded ${key === q.correct
+                                                ? "bg-green-100 border-green-600"
+                                                : "bg-gray-50"
+                                                }`}
                                         >
                                             <span className="font-semibold uppercase">{key}.</span>{" "}
                                             {value || <span className="opacity-50">—</span>}

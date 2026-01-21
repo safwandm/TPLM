@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
+import { webFetch } from "@/lib/webFetch";
 import {
     FaPlus,
     FaEdit,
@@ -7,10 +8,9 @@ import {
     FaFileAlt,
     FaTrash,
 } from "react-icons/fa";
-import { API } from "@/lib/api";
+import { WebAPI } from "@/lib/api.web";
 
 export default function Dashboard() {
-    const user = JSON.parse(localStorage.getItem("auth_user"));
 
     /* =====================================
        QUIZ STATE
@@ -24,21 +24,11 @@ export default function Dashboard() {
        FETCH QUIZZES
     ===================================== */
     useEffect(() => {
-        const token = localStorage.getItem("auth_token");
-        if (token == null) return;
 
         async function fetchQuizzes() {
             try {
-                const res = await fetch(
-                    API.teacher.allQuiz,
-                    {
-                        method: "GET",
-                        headers: {
-                            "Accept": "application/json",
-                            "Authorization": `Bearer ${token}`,
-                        },
-                    }
-                );
+                console.log("Fetching quizzes from:", WebAPI.teacher.allQuiz);
+                const res = await webFetch(WebAPI.teacher.allQuiz);
 
                 if (!res.ok) {
                     throw new Error(`HTTP ${res.status}`);
@@ -60,31 +50,38 @@ export default function Dashboard() {
     /* =====================================
        HANDLERS
     ===================================== */
+
+    function getCsrfToken() {
+        return decodeURIComponent(
+            document.cookie
+                .split("; ")
+                .find(row => row.startsWith("XSRF-TOKEN="))
+                ?.split("=")[1] ?? ""
+        );
+    }
     function handleEdit(id) {
         window.location.href = `/quizzes/${id}/edit`;
     }
 
     async function handleStart(kuisId) {
-        const token = localStorage.getItem("auth_token");
-        if (!token) return;
 
         setLoadingId(kuisId);
 
         try {
-            const res = await fetch(API.session.create, {
-                method: "POST",
+            const res = await webFetch(WebAPI.session.create, {
                 headers: {
-                    Accept: "application/json",
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
+                    "X-XSRF-TOKEN": getCsrfToken(),
                 },
+                method: "POST",
                 body: JSON.stringify({
                     kuis_id: kuisId,
                 }),
             });
 
             if (!res.ok) {
-                throw new Error("Gagal membuat sesi kuis");
+                const errorData = await res.json();
+                console.error("Start quiz error:", errorData);
+                throw new Error(errorData.message ?? "Start quiz gagal");
             }
 
             const data = await res.json();
@@ -104,8 +101,6 @@ export default function Dashboard() {
     }
 
     async function handleDelete(id) {
-        const token = localStorage.getItem("auth_token");
-        if (!token) return;
 
         const confirmed = window.confirm(
             "Yakin ingin menghapus kuis ini?\nSemua soal dan sesi terkait akan ikut terhapus."
@@ -116,12 +111,11 @@ export default function Dashboard() {
         setLoadingId(id);
 
         try {
-            const res = await fetch(API.teacher.deleteQuiz(id), {
-                method: "DELETE",
+            const res = await webFetch(WebAPI.teacher.deleteQuiz(id), {
                 headers: {
-                    Accept: "application/json",
-                    Authorization: `Bearer ${token}`,
+                    "X-XSRF-TOKEN": getCsrfToken(),
                 },
+                method: "DELETE",
             });
 
             if (!res.ok) {
@@ -160,7 +154,7 @@ export default function Dashboard() {
                         <h2 className="text-xl font-semibold">Kuis saya</h2>
                         <p className="text-sm text-gray-600">
                             Login sebagai{" "}
-                            <span className="font-medium">{user.name}</span>
+                            {/* <span className="font-medium">{user.name}</span> */}
                         </p>
                     </div>
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { API } from "@/lib/api";
+import { WebAPI } from "@/lib/api.web";
+import { webFetch } from "@/lib/webFetch";
 
 export default function WaitingRoom({ id }) {
     const peserta = JSON.parse(localStorage.getItem("peserta"));
@@ -24,9 +25,7 @@ export default function WaitingRoom({ id }) {
     useEffect(() => {
         async function fetchSesi() {
             try {
-                const res = await fetch(API.session.detail(id), {
-                    headers: { Accept: "application/json" },
-                });
+                const res = await webFetch(WebAPI.session.detail(id));
 
                 if (!res.ok) throw new Error("Gagal memuat sesi");
 
@@ -51,6 +50,15 @@ export default function WaitingRoom({ id }) {
 
         fetchSesi();
     }, [id]);
+
+    function getCsrfToken() {
+        return decodeURIComponent(
+            document.cookie
+                .split("; ")
+                .find(row => row.startsWith("XSRF-TOKEN="))
+                ?.split("=")[1] ?? ""
+        );
+    }
 
     /* ================================
        WEBSOCKET

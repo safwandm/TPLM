@@ -1,9 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
-import { API } from "@/lib/api";
+import { WebAPI } from "@/lib/api.web";
+import { webFetch } from "@/lib/webFetch";
 
-export default function EditQuiz({quizId}) {
+export default function EditQuiz({ quizId }) {
     const editFormRef = useRef(null);
 
     /* ===============================
@@ -43,17 +44,12 @@ export default function EditQuiz({quizId}) {
        FETCH QUIZ
     =============================== */
     useEffect(() => {
-        const token = localStorage.getItem("auth_token");
-        if (!token) return (window.location.href = "/login");
-
-        fetch(API.teacher.quiz(quizId), {
-            headers: {
-                Accept: "application/json",
-                Authorization: `Bearer ${token}`,
-            },
-        })
+        webFetch(WebAPI.teacher.quiz(quizId))
             .then((r) => r.json())
             .then((data) => {
+
+                console.log("Fetched quiz data:", data);
+
                 setTitle(data.judul);
                 setDuration(data.total_waktu ?? "");
                 setShowAnswers(data.tampilkan_jawaban_benar);
@@ -66,17 +62,18 @@ export default function EditQuiz({quizId}) {
                         image: q.url_gambar,
                         math: q.persamaan_matematika,
                         timer: q.batas_waktu,
-                        options: {
-                            a: q.opsi_a,
-                            b: q.opsi_b,
-                            c: q.opsi_c,
-                            d: q.opsi_d,
-                        },
+                        a: q.opsi_a,
+                        b: q.opsi_b,
+                        c: q.opsi_c,
+                        d: q.opsi_d,
                         correct: q.jawaban_benar,
                     }))
                 );
             })
-            .catch(() => setError("Gagal memuat kuis"))
+            .catch((err) => {
+                console.error("Fetch error:", err);
+                setError("Gagal memuat kuis. Silakan coba lagi.");
+            })
             .finally(() => setLoading(false));
     }, [quizId]);
 
@@ -101,13 +98,22 @@ export default function EditQuiz({quizId}) {
         setQText(q.text);
         setQImage(q.image ?? "");
         setQMath(q.math ?? "");
-        setOptA(q.options.a);
-        setOptB(q.options.b);
-        setOptC(q.options.c);
-        setOptD(q.options.d);
+        setOptA(q.a);
+        setOptB(q.b);
+        setOptC(q.c);
+        setOptD(q.d);
         setCorrect(q.correct);
         setQTimer(q.timer ?? "");
         editFormRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function getCsrfToken() {
+        return decodeURIComponent(
+            document.cookie
+                .split("; ")
+                .find(row => row.startsWith("XSRF-TOKEN="))
+                ?.split("=")[1] ?? ""
+        );
     }
 
     /* ===============================
@@ -115,6 +121,18 @@ export default function EditQuiz({quizId}) {
     =============================== */
     function submitQuestion() {
         if (!qText.trim()) return alert("Pertanyaan wajib diisi");
+
+        // const payload = {
+        //     pertanyaan: qText,
+        //     opsi_a: optA,
+        //     opsi_b: optB,
+        //     opsi_c: optC,
+        //     opsi_d: optD,
+        //     jawaban_benar: correct,
+        //     url_gambar: qImage || null,
+        //     persamaan_matematika: qMath || null,
+        //     batas_waktu: qTimer ? Number(qTimer) : null,
+        // };
 
         const payload = {
             pertanyaan: qText,
@@ -132,25 +150,38 @@ export default function EditQuiz({quizId}) {
             updatedQuestionsRef.current.set(editingId, payload);
             setQuestions((qs) =>
                 qs.map((q) =>
-                    q.id === editingId ? { ...q, text: qText, options: payload } : q
+                    q.id === editingId ? {
+                        ...q,
+                        text: qText,
+                        a: optA,
+                        b: optB,
+                        c: optC,
+                        d: optD,
+                        correct: correct,
+                        image: qImage,
+                        math: qMath,
+                        timer: qTimer
+                    } : q
                 )
             );
         } else {
             const tempId = `temp-${Date.now()}`;
             addedQuestionsRef.current.push({ ...payload, kuis_id: quizId });
-            setQuestions((qs) => [...qs, {
-                id: tempId, text: qText,
+
+            const newQuestionState = {
+                id: tempId, // <--- THIS FIXES THE WARNING
+                text: qText,
+                a: optA,
+                b: optB,
+                c: optC,
+                d: optD,
+                correct: correct,
                 image: qImage,
                 math: qMath,
-                options: {
-                    a: optA,
-                    b: optB,
-                    c: optC,
-                    d: optD,
-                },
-                correct,
-                timer: qTimer ? Number(qTimer) : null
-            }]);
+                timer: qTimer
+            };
+
+            setQuestions((qs) => [...qs, newQuestionState]);
         }
 
         resetForm();
@@ -182,11 +213,10 @@ export default function EditQuiz({quizId}) {
 
         try {
             /* 1️⃣ UPDATE KUIS */
-            await fetch(API.teacher.quiz(quizId), {
+            await webFetch(WebAPI.teacher.quiz(quizId), {
                 method: "PUT",
                 headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
+                    "X-XSRF-TOKEN": getCsrfToken(),
                 },
                 body: JSON.stringify({
                     judul: title,
@@ -198,39 +228,46 @@ export default function EditQuiz({quizId}) {
 
             /* 2️⃣ DELETE */
             for (const id of deletedQuestionIdsRef.current) {
-                await fetch(API.teacher.question(id), {
+                console.log("Deleting question:", id);
+                await webFetch(WebAPI.teacher.question(id), {
                     method: "DELETE",
-                    headers: { Authorization: `Bearer ${token}` },
+                    headers: {
+                        "X-XSRF-TOKEN": getCsrfToken(),
+                    },
                 });
             }
 
             /* 3️⃣ UPDATE */
             for (const [id, payload] of updatedQuestionsRef.current.entries()) {
-                await fetch(API.teacher.question(id), {
+                console.log("Updating question:", id, payload);
+                const res = await webFetch(WebAPI.teacher.question(id), {
                     method: "PUT",
                     headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
+                        "X-XSRF-TOKEN": getCsrfToken(),
                     },
                     body: JSON.stringify(payload),
                 });
+                console.log("Update response:", res);
             }
 
             /* 4️⃣ ADD */
             for (const q of addedQuestionsRef.current) {
-                await fetch(API.teacher.createQuestion, {
+                console.log("Adding question:", q);
+                const res = await webFetch(WebAPI.teacher.createQuestion, {
                     method: "POST",
                     headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${token}`,
+                        "X-XSRF-TOKEN": getCsrfToken(),
                     },
                     body: JSON.stringify(q),
                 });
+                console.log("Add response:", res);
             }
 
+
             alert("Perubahan disimpan");
-            window.location.href = "/dashboard";
+            // window.location.href = "/dashboard";
         } catch (e) {
+            console.error("Save error:", e);
             alert("Gagal menyimpan perubahan");
         }
     }
@@ -454,18 +491,26 @@ export default function EditQuiz({quizId}) {
                                 )}
 
                                 <div className="grid grid-cols-2 gap-3 text-sm">
-                                    {Object.entries(q.options).map(([key, value]) => (
-                                        <div
-                                            key={key}
-                                            className={`border px-3 py-2 rounded ${key === q.correct
-                                                ? "bg-green-100 border-green-600"
-                                                : "bg-gray-50"
-                                                }`}
-                                        >
-                                            <span className="font-semibold uppercase">{key}.</span>{" "}
-                                            {value || <span className="opacity-50">—</span>}
-                                        </div>
-                                    ))}
+                                    {[
+                                        { key: 'a', value: q.a },
+                                        { key: 'b', value: q.b },
+                                        { key: 'c', value: q.c },
+                                        { key: 'd', value: q.d },
+                                    ]
+                                        .filter(option => option.value && option.value.trim() !== "")
+
+                                        .map(({ key, value }) => (
+                                            <div
+                                                key={key}
+                                                className={`border px-3 py-2 rounded ${key === q.correct
+                                                    ? "bg-green-100 border-green-600"
+                                                    : "bg-gray-50"
+                                                    }`}
+                                            >
+                                                <span className="font-semibold uppercase">{key}.</span>{" "}
+                                                {value}
+                                            </div>
+                                        ))}
                                 </div>
 
                                 <div className="text-xs text-gray-500 mt-3">

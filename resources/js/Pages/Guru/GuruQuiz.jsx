@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaPlay } from "react-icons/fa";
-import { API } from "@/lib/api";
+import { WebAPI } from "@/lib/api.web";
+import { webFetch } from "@/lib/webFetch";
 
 export default function GuruQuiz() {
     const id = Number(window.location.pathname.split("/")[2]);
@@ -25,9 +26,12 @@ export default function GuruQuiz() {
         console.log("channel:", channel);
 
         channel
+            .listenToAll((event, data) => {
+                console.log("EVENT:", event, data);
+            })
+
             .listen(".ParticipantsUpdated", e => {
                 setParticipants(e.peserta);
-                console.log("Participants updated:", e.peserta);
             })
 
             .listen(".QuizStarting", () => {
@@ -68,11 +72,9 @@ export default function GuruQuiz() {
 
     /* ================= FETCH INITIAL ================= */
     useEffect(() => {
-        const token = localStorage.getItem("auth_token");
-        fetch(API.session.detail(id), {
+        const res = webFetch(WebAPI.session.detail(id), {
             headers: {
-                Authorization: `Bearer ${token}`,
-                Accept: "application/json",
+                "X-XSRF-TOKEN": getCsrfToken(),
             },
         })
             .then(res => res.json())
@@ -82,19 +84,30 @@ export default function GuruQuiz() {
                 setParticipants(json.pesertas?.map(p => p.nama) || []);
                 setLeaderboard(json.pesertas || []);
             });
+
+            console.log("Fetched initial session data:", res);
+
     }, [id]);
 
     /* ================= ACTION ================= */
+
+    function getCsrfToken() {
+        return decodeURIComponent(
+            document.cookie
+                .split("; ")
+                .find(row => row.startsWith("XSRF-TOKEN="))
+                ?.split("=")[1] ?? ""
+        );
+    }
+
     async function handleStartQuiz() {
-        const token = localStorage.getItem("auth_token");
         setStarting(true);
 
         try {
-            const res = await fetch(API.session.start(id), {
+            const res = await webFetch(WebAPI.session.start(id), {
                 method: "POST",
                 headers: {
-                    Authorization: `Bearer ${token}`,
-                    Accept: "application/json",
+                    "X-XSRF-TOKEN": getCsrfToken(),
                 },
             });
 

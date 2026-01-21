@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { API } from "@/lib/api";
 import logo from "@/assets/logo.png";
 
 export default function Login() {
@@ -23,12 +22,18 @@ export default function Login() {
         setError("");
 
         try {
-            const csrfToken = document
-                .cookie
+            // 1️⃣ Ask Laravel for CSRF cookies
+            await fetch("/sanctum/csrf-cookie", {
+                credentials: "include",
+            });
+
+            // 2️⃣ Read CSRF token from cookie
+            const csrfToken = document.cookie
                 .split("; ")
                 .find(row => row.startsWith("XSRF-TOKEN="))
                 ?.split("=")[1];
 
+            // 3️⃣ Send login request WITH token
             const response = await fetch("/web/login", {
                 method: "POST",
                 headers: {
@@ -41,21 +46,13 @@ export default function Login() {
             });
 
             const data = await response.json();
-            console.log("Login response data:", data);
 
             if (!response.ok) throw data;
 
-            if (data.roles.includes("admin")) {
-                window.location.href = "/admin";
-                return;
-            }
+            // Ke dashboard
+            window.location.href = "/dashboard";
 
-            if (data.roles.includes("teacher")) {
-                window.location.href = "/dashboard";
-                return;
-            }
-
-            window.location.href = "/";
+            console.log("Logged in:", data.user);
         } catch (err) {
             setError(err?.message || "Login gagal");
         } finally {
