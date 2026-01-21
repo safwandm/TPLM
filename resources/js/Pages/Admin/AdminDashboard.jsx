@@ -1,6 +1,6 @@
 import ProtectedLayout from '@/Layouts/ProtectedLayout';
 
-export default function Admin() {
+export default function Dashboard() {
     return (
         <ProtectedLayout allowedRoles={["admin"]}>
             <div className="flex items-center justify-center min-h-screen">

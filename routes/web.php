@@ -31,12 +31,14 @@ Route::get('/login', fn () =>
     Inertia::render('Auth/Login')
 );
 
-Route::get('/dashboard', fn () =>
-    Inertia::render('Guru/Dashboard')
+Route::middleware(['auth', 'role:admin'])->get(
+    '/admin',
+    fn () => Inertia::render('Admin/AdminDashboard')
 );
 
-Route::get('/admin', fn () =>
-    Inertia::render('Admin')
+Route::middleware(['auth', 'role:teacher'])->get(
+    '/dashboard',
+    fn () => Inertia::render('Guru/GuruDashboard')
 );
 
 Route::get('/quizzes/create', fn () =>
@@ -56,7 +58,7 @@ Route::get('/menunggu/{id}', fn ($id) =>
 );
 
 Route::get('/kuis/{id}', fn ($id) =>
-    Inertia::render('Murid/Quiz', ['id' => $id])
+    Inertia::render('Murid/MuridQuiz', ['id' => $id])
 );
 
 /*

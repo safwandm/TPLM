@@ -28,7 +28,7 @@ export default function ProtectedLayout({ children, allowedRoles = [] }) {
                     !data.roles.some(role => allowedRoles.includes(role))
                 ) {
                     alert("Tidak memiliki akses");
-                    window.location.href = "/";
+                    window.location.href = "/login";
                     return;
                 }
 

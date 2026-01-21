@@ -49,8 +49,13 @@ export default function Login() {
 
             if (!response.ok) throw data;
 
-            // Ke dashboard
-            window.location.href = "/dashboard";
+
+            if (data.roles.includes('admin')) {
+                window.location.href = "/admin";
+            } else if (data.roles.includes('teacher')) {
+                console.log("Redirecting to /dashboard");
+                window.location.href = "/dashboard";
+            }
 
             console.log("Logged in:", data.user);
         } catch (err) {
