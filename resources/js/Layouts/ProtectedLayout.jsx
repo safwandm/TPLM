@@ -17,25 +17,25 @@ export default function ProtectedLayout({ children, allowedRoles = [] }) {
                 });
 
                 if (res.status === 401) {
-                    // window.location.href = "/login";
+                    window.location.href = "/login";
                     return;
                 }
 
                 const data = await res.json();
 
-                // if (
-                //     allowedRoles.length > 0 &&
-                //     !data.roles.some(role => allowedRoles.includes(role))
-                // ) {
-                //     alert("Tidak memiliki akses");
-                //     window.location.href = "/";
-                //     return;
-                // }
+                if (
+                    allowedRoles.length > 0 &&
+                    !data.roles.some(role => allowedRoles.includes(role))
+                ) {
+                    alert("Tidak memiliki akses");
+                    window.location.href = "/";
+                    return;
+                }
 
                 setLoading(false);
             } catch (err) {
                 console.error("Auth check failed", err);
-                // window.location.href = "/login";
+                window.location.href = "/login";
             }
         }
 

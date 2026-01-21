@@ -24,7 +24,7 @@ export default function Header({ user }) {
         } catch (err) {
             console.error("Logout failed", err);
         } finally {
-            // window.location.href = "/login";
+            window.location.href = "/login";
         }
     }
 
