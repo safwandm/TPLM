@@ -2,14 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Events\UpdateLeaderboard;
-use App\Models\JawabanPeserta;
 use Illuminate\Http\Request;
 use App\Models\Pertanyaan;
-use App\Models\SesiKuis;
-use App\Models\SesiPeserta;
-use Carbon\Carbon;
-use Illuminate\Support\Facades\Cache;
 
 class PertanyaanController extends Controller
 {

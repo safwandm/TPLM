@@ -101,4 +101,4 @@ class EndQuestion implements ShouldQueue
         // broadcast session finished
         broadcast(new SessionFinished($session));
     }
-}
+}   

@@ -5,37 +5,12 @@ use App\Http\Controllers\PertanyaanController;
 use App\Http\Controllers\SesiKuisController;
 use App\Http\Controllers\SesiPesertaController;
 use App\Http\Controllers\UserController;
-use App\Models\SesiKuis;
-use App\Models\SesiPeserta;
 use Illuminate\Support\Facades\Route;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
-Route::post('/login', function (Request $request) {
-
-    $request->validate([
-        'email' => 'required|email',
-        'password' => 'required',
-    ]);
-
-    $user = User::where('email', $request->email)->first();
-
-    if (! $user || ! Hash::check($request->password, $user->password)) {
-        throw ValidationException::withMessages([
-            'email' => ['The provided credentials are incorrect.'],
-        ]);
-    }
-
-    $token = $user->createToken('web')->plainTextToken;
-
-    return response()->json([
-        'token' => $token,
-        'user' => $user,
-        'roles' => $user->getRoleNames(),
-    ]);
-});
 
 Route::middleware('auth:sanctum')->post('/logout', function (Request $request) {
     $request->user()->currentAccessToken()->delete();
@@ -62,6 +37,7 @@ Route::middleware('auth:sanctum')->get('/current-user', function (Request $reque
     ]);
 });
 
+
 Route::prefix('admin')->middleware(['auth:sanctum', 'role:admin'])->group(function () {
     Route::post('/user/create-user', [UserController::class, 'create_user']);
     Route::put('/user/{id}/replace-password', [UserController::class, 'replace_password']);
@@ -82,8 +58,6 @@ Route::prefix('teacher')->middleware(['auth:sanctum', 'role:teacher|admin'])->gr
     Route::post('/pertanyaan', [PertanyaanController::class, 'store']);
     Route::put('/pertanyaan/{id}', [PertanyaanController::class, 'update']);
     Route::delete('/pertanyaan/{id}', [PertanyaanController::class, 'destroy']);
-
-
 });
 
 Route::prefix('sesi')->middleware(['auth:sanctum', 'role:teacher|admin'])->group(function () {
@@ -91,9 +65,12 @@ Route::prefix('sesi')->middleware(['auth:sanctum', 'role:teacher|admin'])->group
     Route::post('/{id}/start', [SesiKuisController::class, 'start']);
 });
 
+Route::get('/sesi/{id}', [SesiKuisController::class, 'detail_sesi']);
+
 Route::post('/sesi/{session_id}/pertanyaan/{question_id}/jawab', [SesiKuisController::class, 'submit']);
 Route::get('/sesi/{id}', [SesiKuisController::class, 'detail_sesi']);
 
+// Route::get('/sesi/{id}/config', [SesiKuisController::class, 'config']);
 
 Route::post('/join/{kode}', [SesiPesertaController::class, 'join']);
 
