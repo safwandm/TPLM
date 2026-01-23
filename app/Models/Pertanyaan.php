@@ -10,15 +10,21 @@ class Pertanyaan extends Model
         'kuis_id',
         'urutan',
         'pertanyaan',
-        'url_gambar',
-        'persamaan_matematika',
-        'batas_waktu',
+        'mode',
+        'jawaban_benar',
         'opsi_a',
         'opsi_b',
         'opsi_c',
         'opsi_d',
-        'jawaban_benar',
+        'url_gambar',
+        'persamaan_matematika',
+        'batas_waktu',
     ];
+
+    protected $casts = [
+        'jawaban_benar' => 'array',
+    ];
+
 
     public function kuis()
     {

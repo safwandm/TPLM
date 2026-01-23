@@ -1,214 +1,263 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import ProtectedLayout from "@/Layouts/ProtectedLayout";
+import { FaTrash, FaPlus } from "react-icons/fa";
 import { WebAPI } from "@/lib/api.web";
 import { webFetch } from "@/lib/webFetch";
-import AppLayout from "@/Layouts/AppLayout";
-import { FaTrash, FaPlus } from "react-icons/fa";
-import ProtectedLayout from "../../Layouts/ProtectedLayout";
 
-/* =====================================================
-   COMPONENT
-===================================================== */
 export default function CreateQuiz() {
+    const editFormRef = useRef(null);
 
-    /* =====================================================
-       QUIZ SETTINGS STATE
-    ===================================================== */
+    /* ================= OPTIONS ================= */
+    const [options, setOptions] = useState([
+        { id: "a", text: "", correct: true },
+        { id: "b", text: "", correct: false },
+    ]);
+    const [questionMode, setQuestionMode] = useState("single");
+
+    function resetOptionsForMode(mode) {
+        if (mode === "true_false") {
+            setOptions([
+                { id: "true", text: "Benar", correct: true },
+                { id: "false", text: "Salah", correct: false },
+            ]);
+            return;
+        }
+
+        setOptions([
+            { id: "a", text: "", correct: true },
+            { id: "b", text: "", correct: false },
+        ]);
+    }
+
+    function toggleCorrect(index) {
+        setOptions((prev) => {
+            const next = [...prev];
+
+            if (questionMode !== "multiple") {
+                next.forEach((o, i) => (o.correct = i === index));
+                return next;
+            }
+
+            const checkedCount = prev.filter((o) => o.correct).length;
+            if (checkedCount === 1 && prev[index].correct) return prev;
+
+            next[index].correct = !next[index].correct;
+            return next;
+        });
+    }
+
+    function updateOptionText(index, value) {
+        setOptions((prev) => {
+            const next = [...prev];
+            next[index].text = value;
+            return next;
+        });
+    }
+
+    function addOption() {
+        if (options.length >= 4) return;
+
+        const nextId = ["a", "b", "c", "d"][options.length];
+
+        setOptions((prev) => [
+            ...prev,
+            { id: nextId, text: "", correct: false },
+        ]);
+    }
+
+    function removeOption(index) {
+        setOptions((prev) => {
+            const next = prev.filter((_, i) => i !== index);
+            if (!next.some((o) => o.correct)) {
+                next[0].correct = true;
+            }
+            return next;
+        });
+    }
+
+    /* ================= QUIZ STATE ================= */
     const [title, setTitle] = useState("");
     const [duration, setDuration] = useState("");
     const [showAnswers, setShowAnswers] = useState(false);
     const [showLeaderboard, setShowLeaderboard] = useState(false);
-
-    /* =====================================================
-       QUESTIONS COLLECTION
-    ===================================================== */
     const [questions, setQuestions] = useState([]);
 
-    /* =====================================================
-       CURRENT QUESTION INPUT STATE
-    ===================================================== */
+    /* ================= FORM STATE ================= */
+    const [editingId, setEditingId] = useState(null);
     const [qText, setQText] = useState("");
     const [qImage, setQImage] = useState("");
     const [qMath, setQMath] = useState("");
-    const [optA, setOptA] = useState("");
-    const [optB, setOptB] = useState("");
-    const [optC, setOptC] = useState("");
-    const [optD, setOptD] = useState("");
-    const [correct, setCorrect] = useState("a");
-    const [qTimer, setQTimer] = useState("1");
+    const [qTimer, setQTimer] = useState("");
 
-    /* =====================================================
-       VALIDATE QUESTION INPUT
-    ===================================================== */
-    function validateQuestion() {
-        if (!qText.trim()) {
-            alert("Pertanyaan tidak boleh kosong");
-            return false;
-        }
-
-        if (!optA.trim() || !optB.trim() || !optC.trim() || !optD.trim()) {
-            alert("Semua opsi jawaban harus diisi");
-            return false;
-        }
-
-        if (qTimer && isNaN(Number(qTimer))) {
-            alert("Batas waktu harus berupa angka");
-            return false;
-        }
-
-        return true;
-    }
-
-    /* =====================================================
-       RESET QUESTION FORM
-    ===================================================== */
-    function resetQuestionForm() {
+    function resetForm() {
+        setEditingId(null);
         setQText("");
         setQImage("");
         setQMath("");
-        setOptA("");
-        setOptB("");
-        setOptC("");
-        setOptD("");
-        setCorrect("a");
         setQTimer("");
+        setQuestionMode("single");
+        resetOptionsForMode("single");
     }
 
-    /* =====================================================
-       ADD QUESTION
-    ===================================================== */
-    function addQuestion() {
-        if (!validateQuestion()) return;
+    function startEdit(q) {
+        setEditingId(q.id);
+        setQText(q.text);
+        setQImage(q.image ?? "");
+        setQMath(q.math ?? "");
+        setQuestionMode(q.mode ?? "single");
+        setQTimer(q.timer ?? "");
 
-        const newQuestion = {
-            id: Date.now(),
+        if (q.mode === "true_false") {
+            setOptions([
+                { id: "true", text: "Benar", correct: q.correct.includes("true") },
+                { id: "false", text: "Salah", correct: q.correct.includes("false") },
+            ]);
+        } else {
+            const opts = [
+                { id: "a", text: q.a, correct: q.correct.includes("a") },
+                { id: "b", text: q.b, correct: q.correct.includes("b") },
+                { id: "c", text: q.c, correct: q.correct.includes("c") },
+                { id: "d", text: q.d, correct: q.correct.includes("d") },
+            ].filter(o => o.text);
+            setOptions(opts);
+        }
+
+        editFormRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+
+    /* ================= ADD / EDIT QUESTION ================= */
+    function submitQuestion() {
+        if (!qText.trim()) return alert("Pertanyaan wajib diisi");
+
+        // Validate empty answers
+        const hasEmptyAnswer = options.some(o => !o.text || !o.text.trim());
+        if (hasEmptyAnswer) {
+            return alert("Semua pilihan jawaban wajib diisi");
+        }
+
+        const correctCount = options.filter(o => o.correct).length;
+        if ((questionMode !== "multiple") && correctCount !== 1)
+            return alert("Mode ini hanya boleh satu jawaban benar");
+
+        const opsiMap = { a: null, b: null, c: null, d: null };
+        options.forEach((opt, i) => {
+            const key = ["a", "b", "c", "d"][i];
+            if (key) opsiMap[key] = opt.text || null;
+        });
+
+        const jawabanBenar = options.filter(o => o.correct).map(o => o.id);
+
+        const payload = {
+            id: editingId ?? `temp-${Date.now()}`,
             text: qText,
             image: qImage,
             math: qMath,
-            options: {
-                a: optA,
-                b: optB,
-                c: optC,
-                d: optD,
-            },
-            correct,
-            timer: qTimer ? Number(qTimer) : null,
+            timer: qTimer,
+            mode: questionMode,
+            ...opsiMap,
+            correct: jawabanBenar,
         };
 
-        setQuestions((prev) => [...prev, newQuestion]);
-        resetQuestionForm();
+        setQuestions(qs =>
+            editingId
+                ? qs.map(q => q.id === editingId ? payload : q)
+                : [...qs, payload]
+        );
+
+        console.log("Question submitted:", payload);
+
+        resetForm();
     }
 
-    /* =====================================================
-       VALIDATE QUIZ BEFORE SAVE
-    ===================================================== */
-    function validateQuiz() {
-        if (!title.trim()) {
-            alert("Judul kuis wajib diisi");
-            return false;
-        }
-
-        if (questions.length === 0) {
-            alert("Minimal harus ada 1 pertanyaan");
-            return false;
-        }
-
-        return true;
+    function deleteQuestion(id) {
+        if (!confirm("Hapus pertanyaan?")) return;
+        setQuestions(qs => qs.filter(q => q.id !== id));
     }
 
-    /* =====================================================
-       SAVE QUIZ
-    ===================================================== */
+    /* ================= SAVE QUIZ ================= */
     async function saveQuiz() {
-        if (!validateQuiz()) return;
+        if (!title.trim()) return alert("Judul wajib diisi");
+        if (!questions.length) return alert("Minimal satu pertanyaan");
 
         const payload = {
             judul: title,
             total_waktu: duration ? Number(duration) : null,
             tampilkan_jawaban_benar: showAnswers,
             tampilkan_peringkat: showLeaderboard,
-            pertanyaan: questions.map((q) => ({
+            pertanyaan: questions.map(q => ({
                 pertanyaan: q.text,
-                opsi_a: q.options.a,
-                opsi_b: q.options.b,
-                opsi_c: q.options.c,
-                opsi_d: q.options.d,
+                mode: q.mode,
+                opsi_a: q.a,
+                opsi_b: q.b,
+                opsi_c: q.c,
+                opsi_d: q.d,
                 jawaban_benar: q.correct,
                 url_gambar: q.image || null,
                 persamaan_matematika: q.math || null,
-                batas_waktu: q.timer ?? null,
+                batas_waktu: q.timer ? Number(q.timer) : null,
             })),
         };
 
+        const csrf = decodeURIComponent(
+            document.cookie
+                .split("; ")
+                .find(r => r.startsWith("XSRF-TOKEN="))
+                ?.split("=")[1] ?? ""
+        );
+
         try {
-
-            function getCsrfToken() {
-                return decodeURIComponent(
-                    document.cookie
-                        .split("; ")
-                        .find(row => row.startsWith("XSRF-TOKEN="))
-                        ?.split("=")[1] ?? ""
-                );
-            }
-
-            const res = await webFetch(WebAPI.teacher.createQuizFull, {
+            const response = await webFetch(WebAPI.teacher.createQuizFull, {
                 method: "POST",
                 headers: {
-                    "X-XSRF-TOKEN": getCsrfToken(),
+                    "X-XSRF-TOKEN": csrf,
+                    "Content-Type": "application/json",
                 },
                 body: JSON.stringify(payload),
             });
 
-            if (!res.ok) {
-                const text = await res.text();
-                console.error("Server response:", text);
-                alert("Gagal menyimpan kuis");
-                return;
-            }
-
+            console.log("Quiz created:", await response.json());
+            
             alert("Kuis berhasil dibuat");
-            window.location.href = "/dashboard";
-        } catch (err) {
-            console.error("Fetch error:", err);
+            // window.location.href = "/dashboard";
+        } catch (e) {
+            console.error(e);
+            alert("Gagal menyimpan kuis");
         }
     }
 
-    /* =====================================================
-       UI
-    ===================================================== */
+    /* ================= UI ================= */
     return (
         <ProtectedLayout allowedRoles={["teacher"]}>
             <div className="max-w-4xl mx-auto space-y-8">
 
-                {/* -------------------------------------- */}
-                {/* CARD: Pengaturan Kuis */}
-                {/* -------------------------------------- */}
+                {/* HEADER */}
+                <div className="flex justify-between mb-6">
+                    <button
+                        onClick={() => window.location.href = "/dashboard"}
+                        className="text-blue-700"
+                    >
+                        ← Kembali
+                    </button>
+
+                    <button
+                        onClick={saveQuiz}
+                        className="bg-green-600 text-white px-4 py-2 rounded"
+                    >
+                        Simpan Kuis
+                    </button>
+                </div>
+
+                {/* PENGATURAN KUIS */}
                 <div className="bg-white p-6 rounded-lg shadow">
-                    <div className="flex justify-between mb-6">
-                        <button
-                            onClick={() => window.location.href = "/dashboard"}
-                            className="text-blue-700"
-                        >
-                            ← Kembali
-                        </button>
-
-                        <button
-                            onClick={saveQuiz}
-                            className="bg-green-600 text-white px-4 py-2 rounded"
-                        >
-                            Tambahkan Kuis
-                        </button>
-                    </div>
-
                     <h2 className="font-semibold text-lg mb-3">Pengaturan Kuis</h2>
-                    <div className="space-y-4 mb-4">
+
+                    <div className="space-y-4">
                         <div>
                             <label className="text-sm font-medium text-gray-600">Judul Kuis</label>
                             <input
-                                type="text"
                                 className="w-full border p-2 rounded mt-1"
-                                placeholder="Masukkan judul kuis"
                                 value={title}
-                                onChange={(e) => setTitle(e.target.value)}
+                                onChange={e => setTitle(e.target.value)}
                             />
                         </div>
 
@@ -219,9 +268,8 @@ export default function CreateQuiz() {
                             <input
                                 type="number"
                                 className="w-full border p-2 rounded mt-1"
-                                placeholder="Biarkan kosong jika tidak ada total waktu"
                                 value={duration}
-                                onChange={(e) => setDuration(e.target.value)}
+                                onChange={e => setDuration(e.target.value)}
                             />
                         </div>
 
@@ -230,7 +278,7 @@ export default function CreateQuiz() {
                                 <input
                                     type="checkbox"
                                     checked={showAnswers}
-                                    onChange={(e) => setShowAnswers(e.target.checked)}
+                                    onChange={e => setShowAnswers(e.target.checked)}
                                 />
                                 Tunjukkan Jawaban Benar
                             </label>
@@ -239,7 +287,7 @@ export default function CreateQuiz() {
                                 <input
                                     type="checkbox"
                                     checked={showLeaderboard}
-                                    onChange={(e) => setShowLeaderboard(e.target.checked)}
+                                    onChange={e => setShowLeaderboard(e.target.checked)}
                                 />
                                 Tunjukkan Peringkat
                             </label>
@@ -247,11 +295,9 @@ export default function CreateQuiz() {
                     </div>
                 </div>
 
-                {/* -------------------------------------- */}
-                {/* CARD: Tambah Pertanyaan */}
-                {/* -------------------------------------- */}
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="font-semibold text-lg mb-3">Tambah Pertanyaan</h2>
+                {/* TAMBAH PERTANYAAN */}
+                <div ref={editFormRef} className="bg-white p-6 rounded-lg shadow">
+                    <h2 className="font-semibold text-lg mb-3">Pertanyaan</h2>
 
                     <div className="space-y-4">
                         <div>
@@ -265,115 +311,137 @@ export default function CreateQuiz() {
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium text-gray-600">
-                                URL Gambar (opsional)
-                            </label>
+                            <label className="text-sm font-medium text-gray-600">URL Gambar (opsional)</label>
                             <input
                                 type="text"
                                 className="w-full border p-2 rounded mt-1"
                                 placeholder="https://..."
                                 value={qImage}
-                                onChange={(e) => setQImage(e.target.value)}
+                                onChange={e => setQImage(e.target.value)}
                             />
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium text-gray-600">
-                                Persamaan Matematika
-                            </label>
+                            <label className="text-sm font-medium text-gray-600">Persamaan Matematika</label>
                             <input
                                 type="text"
                                 className="w-full border p-2 rounded mt-1"
                                 placeholder="x^2 + y^2 = z^2"
                                 value={qMath}
-                                onChange={(e) => setQMath(e.target.value)}
+                                onChange={e => setQMath(e.target.value)}
                             />
                         </div>
 
                         <div>
-                            <label className="text-sm font-medium text-gray-600">
-                                Pilihan Jawaban
-                            </label>
-                            <div className="grid grid-cols-2 gap-3 mt-1">
-                                <input className="border p-2 rounded" placeholder="Masukkan pilihan a" value={optA} onChange={(e) => setOptA(e.target.value)} />
-                                <input className="border p-2 rounded" placeholder="Masukkan pilihan b" value={optB} onChange={(e) => setOptB(e.target.value)} />
-                                <input className="border p-2 rounded" placeholder="Masukkan pilihan c" value={optC} onChange={(e) => setOptC(e.target.value)} />
-                                <input className="border p-2 rounded" placeholder="Masukkan pilihan d" value={optD} onChange={(e) => setOptD(e.target.value)} />
-                            </div>
+                            <label className="text-sm font-medium text-gray-600">Tipe Pertanyaan</label>
+                            <select
+                                className="border p-2 rounded w-full mt-1"
+                                value={questionMode}
+                                onChange={(e) => {
+                                    const mode = e.target.value;
+                                    setQuestionMode(mode);
+                                    resetOptionsForMode(mode);
+                                }}
+                            >
+                                <option value="single">Satu Jawaban Benar</option>
+                                <option value="multiple">Banyak Jawaban Benar</option>
+                                <option value="true_false">Benar / Salah</option>
+                            </select>
                         </div>
+
+                        <div className="space-y-1 mt-2">
+                            <label className="block mt-4 text-sm font-medium text-gray-600">Pilihan Jawaban</label>
+                            {options.map((opt, idx) => (
+                                <div key={opt.id} className="flex gap-2 items-center">
+                                    <input
+                                        type="checkbox"
+                                        checked={opt.correct}
+                                        onChange={() => toggleCorrect(idx)}
+                                    />
+                                    <input
+                                        className="flex-1 border p-2 rounded"
+                                        disabled={questionMode === "true_false"}
+                                        value={opt.text}
+                                        placeholder="Masukkan jawaban"
+                                        onChange={(e) => updateOptionText(idx, e.target.value)}
+                                    />
+                                    {questionMode !== "true_false" && options.length > 2 && (
+                                        <button onClick={() => removeOption(idx)} className="text-red-600">
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        {questionMode !== "true_false" && options.length < 4 && (
+                            <button onClick={addOption} className="text-blue-600 text-sm mt-3">
+                                + Tambah Jawaban
+                            </button>
+                        )}
 
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-sm font-medium text-gray-600">
-                                    Kunci Jawaban
-                                </label>
-                                <select
-                                    className="border p-2 rounded w-full mt-1"
-                                    value={correct}
-                                    onChange={(e) => setCorrect(e.target.value)}
-                                >
-                                    <option value="a">Pilihan a</option>
-                                    <option value="b">Pilihan b</option>
-                                    <option value="c">Pilihan c</option>
-                                    <option value="d">Pilihan d</option>
-                                </select>
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium text-gray-600">
-                                    Batas Waktu per Soal (detik)
-                                </label>
+                                <label className="text-sm font-medium text-gray-600">Batas Waktu per Soal (detik)</label>
                                 <input
                                     type="number"
                                     min={1}
                                     className="border p-2 rounded w-full mt-1"
                                     placeholder="Masukkan batas waktu"
                                     value={qTimer}
-                                    onChange={(e) => setQTimer(e.target.value)}
+                                    onChange={e => setQTimer(e.target.value)}
                                 />
                             </div>
                         </div>
 
                         <button
-                            onClick={addQuestion}
+                            type="button"
+                            onClick={submitQuestion}
                             className="bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
                         >
-                            <FaPlus /> Tambahkan Soal
+                            {editingId ? "Edit Soal" : <><FaPlus /> Tambahkan Soal</>}
                         </button>
+
                     </div>
+
                 </div>
 
-                {/* -------------------------------------- */}
-                {/* CARD: Preview Pertanyaan */}
-                {/* -------------------------------------- */}
+                {/* LIST PERTANYAAN */}
                 <div className="bg-white p-6 rounded-lg shadow">
                     <h2 className="font-semibold text-lg mb-4">Pertanyaan</h2>
-
                     <div className="space-y-4">
                         {questions.map((q, index) => (
                             <div key={q.id} className="border rounded-lg p-4 shadow-sm bg-white">
+
+                                {/* Header */}
                                 <div className="flex items-start justify-between mb-3">
                                     <div className="font-medium text-gray-800">
                                         {index + 1}. {q.text}
                                     </div>
 
-                                    <button
-                                        onClick={() =>
-                                            setQuestions((prev) =>
-                                                prev.filter((x) => x.id !== q.id)
-                                            )
-                                        }
-                                        className="text-red-600 hover:text-red-800"
-                                    >
-                                        <FaTrash />
-                                    </button>
+                                    <div className="flex gap-3 items-center">
+                                        <button
+                                            type="button"
+                                            onClick={() => startEdit(q)}
+                                            className="text-blue-600 text-sm font-medium"
+                                        >
+                                            Edit
+                                        </button>
+
+
+                                        <button
+                                            onClick={() => deleteQuestion(q.id)}
+                                            className="text-red-600 hover:text-red-800"
+                                        >
+                                            <FaTrash />
+                                        </button>
+
+                                    </div>
+
                                 </div>
 
                                 {q.image && (
-                                    <img
-                                        src={q.image}
-                                        className="max-w-xs rounded border mb-3"
-                                    />
+                                    <img src={q.image} className="max-w-xs rounded border mb-3" />
                                 )}
 
                                 {q.math && (
@@ -382,28 +450,34 @@ export default function CreateQuiz() {
                                     </div>
                                 )}
 
-                                <div className="grid grid-cols-2 gap-3 text-sm">
-                                    {Object.entries(q.options).map(([key, value]) => (
-                                        <div
-                                            key={key}
-                                            className={`border px-3 py-2 rounded ${key === q.correct
-                                                ? "bg-green-100 border-green-600"
-                                                : "bg-gray-50"
-                                                }`}
-                                        >
-                                            <span className="font-semibold uppercase">{key}.</span>{" "}
-                                            {value || <span className="opacity-50">—</span>}
-                                        </div>
-                                    ))}
+                                <div className="grid grid-cols-2 gap-2 text-sm">
+                                    {[
+                                        { key: "a", text: q.a },
+                                        { key: "b", text: q.b },
+                                        { key: "c", text: q.c },
+                                        { key: "d", text: q.d },
+                                    ]
+                                        .filter(o => o.text)
+                                        .map(o => (
+                                            <div
+                                                key={o.key}
+                                                className={`border p-2 rounded ${q.correct.includes(o.key)
+                                                    ? "bg-green-100 border-green-600"
+                                                    : "bg-white"
+                                                    }`}
+                                            >
+                                                {o.text}
+                                            </div>
+                                        ))}
                                 </div>
 
                                 <div className="text-xs text-gray-500 mt-3">
-                                    Batas waktu:{" "}
-                                    {q.timer ? `${q.timer} detik` : "Tidak ada batas waktu"}
+                                    Batas waktu: {q.timer ? `${q.timer} detik` : "Tidak ada batas waktu"}
                                 </div>
                             </div>
                         ))}
                     </div>
+
                 </div>
             </div>
         </ProtectedLayout>

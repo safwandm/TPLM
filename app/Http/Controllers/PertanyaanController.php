@@ -11,18 +11,42 @@ class PertanyaanController extends Controller
     {
         $validated = $request->validate([
             'kuis_id' => 'required|exists:kuis,id',
+            'mode' => 'required|in:single,multiple,true_false',
+
             'pertanyaan' => 'required|string',
             'opsi_a' => 'required|string',
             'opsi_b' => 'required|string',
-            'opsi_c' => 'required|string',
-            'opsi_d' => 'required|string',
-            'jawaban_benar' => 'required|in:a,b,c,d',
+            'opsi_c' => 'nullable|string',
+            'opsi_d' => 'nullable|string',
+
+            'jawaban_benar' => 'required|array|min:1',
+            'jawaban_benar.*' => 'in:a,b,c,d',
+
             'url_gambar' => 'nullable|string',
             'persamaan_matematika' => 'nullable|string',
             'batas_waktu' => 'nullable|integer',
         ]);
 
-        // Ambil urutan terbesar untuk kuis ini
+        // 🔐 Enforce mode rules
+        if (
+            in_array($validated['mode'], ['single', 'true_false']) &&
+            count($validated['jawaban_benar']) !== 1
+        ) {
+            return response()->json([
+                'message' => 'Mode ini hanya boleh satu jawaban benar'
+            ], 422);
+        }
+
+        // 🔐 Prevent pointing to empty options
+        foreach ($validated['jawaban_benar'] as $ans) {
+            if (empty($validated["opsi_$ans"])) {
+                return response()->json([
+                    'message' => "Jawaban benar menunjuk ke opsi kosong ($ans)"
+                ], 422);
+            }
+        }
+
+        // 📊 Auto-order
         $nextOrder = Pertanyaan::where('kuis_id', $validated['kuis_id'])
             ->max('urutan');
 
@@ -39,15 +63,21 @@ class PertanyaanController extends Controller
 
         $validated = $request->validate([
             'pertanyaan' => 'sometimes|string',
+
             'opsi_a' => 'sometimes|string',
             'opsi_b' => 'sometimes|string',
-            'opsi_c' => 'sometimes|string',
-            'opsi_d' => 'sometimes|string',
-            'jawaban_benar' => 'sometimes|in:a,b,c,d',
+            'opsi_c' => 'nullable|string',
+            'opsi_d' => 'nullable|string',
+
+            'jawaban_benar' => 'sometimes|array|min:1',
+            'jawaban_benar.*' => 'in:a,b,c,d',
+
+            'mode' => 'sometimes|in:single,multiple,true_false',
+
             'url_gambar' => 'nullable|string',
             'persamaan_matematika' => 'nullable|string',
             'batas_waktu' => 'nullable|integer',
-            'urutan' => 'nullable|integer'
+            'urutan' => 'nullable|integer',
         ]);
 
         if ($request->has('urutan')) {
