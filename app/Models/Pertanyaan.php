@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Validation\ValidationException;
 
 class Pertanyaan extends Model
 {
@@ -101,5 +102,154 @@ class Pertanyaan extends Model
         }
 
         return 1.0;
+    }
+
+    
+    public static function createValidated(array $data): self
+    {
+        self::validateAndNormalize($data);
+        return self::create($data);
+    }
+
+    public function updateValidated(array $data): bool
+    {
+        $merged = array_merge($this->toArray(), $data);
+        self::validateAndNormalize($merged);
+        return $this->update($data);
+    }
+
+    protected static function validateAndNormalize(array &$data): void
+    {
+        foreach (['tipe_pertanyaan', 'opsi', 'jawaban_benar'] as $key) {
+            if (!array_key_exists($key, $data)) {
+                throw ValidationException::withMessages([
+                    $key => 'Field wajib ada.',
+                ]);
+            }
+        }
+
+        match ($data['tipe_pertanyaan']) {
+
+            'multiple_choice_single' => self::mcSingle($data),
+            'multiple_choice_multi'  => self::mcMulti($data),
+            'true_false'             => self::trueFalse($data),
+            'ordering'               => self::ordering($data),
+            'matching'               => self::matching($data),
+
+            default => throw ValidationException::withMessages([
+                'tipe_pertanyaan' => 'Tipe pertanyaan tidak valid.',
+            ]),
+        };
+    }
+
+    protected static function mcSingle(array &$data): void
+    {
+        self::assertArray($data['opsi'], min: 2);
+        self::assertInt($data['jawaban_benar']);
+
+        if ($data['jawaban_benar'] < 0 || $data['jawaban_benar'] >= count($data['opsi'])) {
+            throw ValidationException::withMessages([
+                'jawaban_benar' => 'Index jawaban di luar range.',
+            ]);
+        }
+
+        $data['opsi'] = array_values($data['opsi']);
+        $data['jawaban_benar'] = [(int) $data['jawaban_benar']];
+    }
+
+    protected static function mcMulti(array &$data): void
+    {
+        self::assertArray($data['opsi'], min: 2);
+        self::assertArray($data['jawaban_benar'], min: 1);
+
+        $opsiCount = count($data['opsi']);
+        $unique = array_unique($data['jawaban_benar']);
+
+        if (count($unique) !== count($data['jawaban_benar'])) {
+            throw ValidationException::withMessages([
+                'jawaban_benar' => 'Jawaban duplikat tidak diperbolehkan.',
+            ]);
+        }
+
+        foreach ($data['jawaban_benar'] as $idx) {
+            if (!is_int($idx) || $idx < 0 || $idx >= $opsiCount) {
+                throw ValidationException::withMessages([
+                    'jawaban_benar' => 'Index jawaban tidak valid.',
+                ]);
+            }
+        }
+
+        $data['opsi'] = array_values($data['opsi']);
+        $data['jawaban_benar'] = array_values($unique);
+    }
+
+    protected static function trueFalse(array &$data): void
+    {
+        if (!is_bool($data['jawaban_benar'])) {
+            throw ValidationException::withMessages([
+                'jawaban_benar' => 'Harus boolean.',
+            ]);
+        }
+
+        // $data['opsi'] = [true, false];
+        $data['opsi'] = null;
+        $data['jawaban_benar'] = [(bool) $data['jawaban_benar']];
+    }
+
+    protected static function ordering(array &$data): void
+    {
+        self::assertArray($data['opsi'], min: 2);
+        self::assertArray($data['jawaban_benar'], min: 2);
+
+        if (count($data['opsi']) !== count($data['jawaban_benar'])) {
+            throw ValidationException::withMessages([
+                'jawaban_benar' => 'Jumlah jawaban harus sama dengan opsi.',
+            ]);
+        }
+
+        $data['opsi'] = array_values($data['opsi']);
+        $data['jawaban_benar'] = array_values($data['jawaban_benar']);
+    }
+
+    protected static function matching(array &$data): void
+    {
+        if (
+            !isset($data['opsi']['kiri'], $data['opsi']['kanan']) ||
+            !is_array($data['opsi']['kiri']) ||
+            !is_array($data['opsi']['kanan'])
+        ) {
+            throw ValidationException::withMessages([
+                'opsi' => 'Matching harus punya kiri & kanan.',
+            ]);
+        }
+
+        $data['opsi'] = [
+            'kiri' => array_values($data['opsi']['kiri']),
+            'kanan' => array_values($data['opsi']['kanan']),
+        ];
+
+        if (!is_array($data['jawaban_benar'])) {
+            throw ValidationException::withMessages([
+                'jawaban_benar' => 'Jawaban harus array mapping.',
+            ]);
+        }
+    }
+
+    protected static function assertArray($value, int $min = 1): void
+    {
+        if (!is_array($value) || count($value) < $min) {
+            throw ValidationException::withMessages([
+                'opsi' => "Minimal $min item diperlukan.",
+            ]);
+        }
+    }
+
+    protected static function assertInt($value): void
+    {
+        if (!is_int($value)) {
+            throw ValidationException::withMessages([
+                'jawaban_benar' => 'Harus integer.',
+            ]);
+        }
     }
 }

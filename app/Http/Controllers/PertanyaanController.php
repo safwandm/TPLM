@@ -7,28 +7,37 @@ use App\Models\Pertanyaan;
 
 class PertanyaanController extends Controller
 {
+
     public function store(Request $request)
     {
         $validated = $request->validate([
             'kuis_id' => 'required|exists:kuis,id',
+
+            'tipe_pertanyaan' => 'required|string',
             'pertanyaan' => 'required|string',
-            'opsi_a' => 'required|string',
-            'opsi_b' => 'required|string',
-            'opsi_c' => 'required|string',
-            'opsi_d' => 'required|string',
-            'jawaban_benar' => 'required|in:a,b,c,d',
+            'opsi' => 'required|array',
+            'jawaban_benar' => 'required',
+
             'url_gambar' => 'nullable|string',
             'persamaan_matematika' => 'nullable|string',
             'batas_waktu' => 'nullable|integer',
         ]);
 
-        // Ambil urutan terbesar untuk kuis ini
-        $nextOrder = Pertanyaan::where('kuis_id', $validated['kuis_id'])
-            ->max('urutan');
+        $urutan = (Pertanyaan::where('kuis_id', $validated['kuis_id'])->max('urutan') ?? 0) + 1;
 
-        $validated['urutan'] = ($nextOrder ?? 0) + 1;
+        $pertanyaan = Pertanyaan::createValidated([
+            'kuis_id' => $validated['kuis_id'],
+            'urutan' => $urutan,
 
-        $pertanyaan = Pertanyaan::create($validated);
+            'tipe_pertanyaan' => $validated['tipe_pertanyaan'],
+            'pertanyaan' => $validated['pertanyaan'],
+            'opsi' => $validated['opsi'],
+            'jawaban_benar' => $validated['jawaban_benar'],
+
+            'url_gambar' => $validated['url_gambar'] ?? null,
+            'persamaan_matematika' => $validated['persamaan_matematika'] ?? null,
+            'batas_waktu' => $validated['batas_waktu'] ?? null,
+        ]);
 
         return response()->json($pertanyaan, 201);
     }
@@ -38,38 +47,28 @@ class PertanyaanController extends Controller
         $pertanyaan = Pertanyaan::findOrFail($id);
 
         $validated = $request->validate([
+            'tipe_pertanyaan' => 'sometimes|string',
             'pertanyaan' => 'sometimes|string',
-            'opsi_a' => 'sometimes|string',
-            'opsi_b' => 'sometimes|string',
-            'opsi_c' => 'sometimes|string',
-            'opsi_d' => 'sometimes|string',
-            'jawaban_benar' => 'sometimes|in:a,b,c,d',
+            'opsi' => 'sometimes|array',
+            'jawaban_benar' => 'sometimes',
+
             'url_gambar' => 'nullable|string',
             'persamaan_matematika' => 'nullable|string',
             'batas_waktu' => 'nullable|integer',
-            'urutan' => 'nullable|integer'
+            'urutan' => 'nullable|integer',
         ]);
 
-        if ($request->has('urutan')) {
-            $newOrder = $request->urutan;
-            $oldOrder = $pertanyaan->urutan;
-            $kuisId   = $pertanyaan->kuis_id;
+        if (isset($validated['urutan']) && $validated['urutan'] !== $pertanyaan->urutan) {
+            $other = Pertanyaan::where('kuis_id', $pertanyaan->kuis_id)
+                ->where('urutan', $validated['urutan'])
+                ->first();
 
-            if ($newOrder !== $oldOrder) {
-
-                $other = Pertanyaan::where('kuis_id', $kuisId)
-                    ->where('urutan', $newOrder)
-                    ->first();
-
-                if ($other) {
-                    $other->update(['urutan' => $oldOrder]);
-                }
-
-                $validated['urutan'] = $newOrder;
+            if ($other) {
+                $other->update(['urutan' => $pertanyaan->urutan]);
             }
         }
 
-        $pertanyaan->update($validated);
+        $pertanyaan->updateValidated($validated);
 
         return response()->json($pertanyaan);
     }

@@ -205,36 +205,32 @@ class SesiKuisController extends Controller
 
         $question = Pertanyaan::find($currentQuestionId);
 
-        $isBenar = false;
-        if (!is_null($request->jawaban) && $request->jawaban === $question->jawaban_benar) {
-            $isBenar = true;
-        }
+        $correctness = $question->cekJawaban($request->jawaban);
 
-        if ($isBenar) {
+        if ($correctness > 0) {
             $timeLimitMs = $question->batas_waktu * 1000;
-        
+
             $timeFactor = 1 - ($waktuJawabMs / $timeLimitMs);
             $timeFactor = max(0, min(1, $timeFactor));
-        
-                $score =
-                    config('quiz.base_score') +
-                    ($timeFactor * config('quiz.time_bonus_score'));
 
-                $score = (int) round($score); // ✅ ADD THIS
+            $score =
+                (config('quiz.base_score') +
+                ($timeFactor * config('quiz.time_bonus_score')))
+                * $correctness;
 
-                $peserta->total_skor += $score;
-                $peserta->save();
+            $peserta->total_skor += (int) round($score);
+            $peserta->save();
         }
 
         $jawaban = JawabanPeserta::updateOrCreate(
             [
                 'peserta_id' => $peserta->id,
                 'pertanyaan_id' => $question_id,
-                'is_benar' =>  $isBenar
             ],
             [
                 'jawaban' => $request->jawaban,
                 'waktu_jawab_ms' => $waktuJawabMs,
+                'correctness' => $correctness,
             ]
         );
 

@@ -56,37 +56,43 @@ class KuisController extends Controller
             'tampilkan_peringkat' => 'boolean',
 
             'pertanyaan' => 'required|array',
+
+            'pertanyaan.*.tipe_pertanyaan' => 'required|string',
             'pertanyaan.*.pertanyaan' => 'required|string',
-            'pertanyaan.*.opsi_a' => 'required|string',
-            'pertanyaan.*.opsi_b' => 'required|string',
-            'pertanyaan.*.opsi_c' => 'required|string',
-            'pertanyaan.*.opsi_d' => 'required|string',
-            'pertanyaan.*.jawaban_benar' => 'required|in:a,b,c,d',
+            'pertanyaan.*.opsi' => 'required|array',
+            'pertanyaan.*.jawaban_benar' => 'required',
+
             'pertanyaan.*.url_gambar' => 'nullable|string',
             'pertanyaan.*.persamaan_matematika' => 'nullable|string',
-            'pertanyaan.*.batas_waktu' => 'nullable|integer'
+            'pertanyaan.*.batas_waktu' => 'nullable|integer',
         ]);
 
         $kuis = Kuis::create([
             'creator_id' => $request->user()->id,
             'judul' => $validated['judul'],
-            // 'total_waktu' => $validated['total_waktu'] ?? null,
             'tampilkan_jawaban_benar' => $validated['tampilkan_jawaban_benar'] ?? false,
-            'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false
+            'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false,
         ]);
 
         foreach ($validated['pertanyaan'] as $index => $p) {
-
-            Pertanyaan::create([
+            Pertanyaan::createValidated([
                 'kuis_id' => $kuis->id,
                 'urutan' => $index + 1,
-                ...$p
+
+                'tipe_pertanyaan' => $p['tipe_pertanyaan'],
+                'pertanyaan' => $p['pertanyaan'],
+                'opsi' => $p['opsi'],
+                'jawaban_benar' => $p['jawaban_benar'],
+
+                'url_gambar' => $p['url_gambar'] ?? null,
+                'persamaan_matematika' => $p['persamaan_matematika'] ?? null,
+                'batas_waktu' => $p['batas_waktu'] ?? null,
             ]);
         }
 
         return response()->json([
             'message' => 'Kuis dan pertanyaan berhasil dibuat',
-            'kuis' => $kuis->load('pertanyaan')
+            'kuis' => $kuis->load('pertanyaan'),
         ], 201);
     }
 
