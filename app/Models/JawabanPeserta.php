@@ -14,7 +14,7 @@ class JawabanPeserta extends Model
         'pertanyaan_id',
         'jawaban',
         'waktu_jawab_ms',
-        'is_benar',
+        'correctness',
     ];
 
     public function peserta()
