@@ -16,18 +16,14 @@ return new class extends Migration
             $table->text('pertanyaan');
             $table->string('url_gambar')->nullable();
             $table->string('persamaan_matematika')->nullable();
-            $table->integer('batas_waktu')->default(30);
+            $table->integer('batas_waktu')->nullable()->default(30); 
 
-            $table->enum('tipe_pertanyaan', [
-                'multiple_choice_single',
-                'multiple_choice_multi',
-                'true_false',
-                'matching',
-                'ordering'
-            ]);
+            $table->string('opsi_a');
+            $table->string('opsi_b');
+            $table->string('opsi_c');
+            $table->string('opsi_d');
 
-            $table->json('opsi')->nullable();
-            $table->json('jawaban_benar');
+            $table->enum('jawaban_benar', ['a', 'b', 'c', 'd']);
 
             $table->timestamps();
             
