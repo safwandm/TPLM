@@ -65,6 +65,9 @@ class KuisController extends Controller
             'pertanyaan.*.url_gambar' => 'nullable|string',
             'pertanyaan.*.persamaan_matematika' => 'nullable|string',
             'pertanyaan.*.batas_waktu' => 'nullable|integer',
+
+            'pertanyaan.*.skor' => 'nullable|integer|min:1',
+            'pertanyaan.*.skor_bonus_waktu' => 'nullable|integer|min:1',
         ]);
 
         $kuis = Kuis::create([
@@ -87,6 +90,9 @@ class KuisController extends Controller
                 'url_gambar' => $p['url_gambar'] ?? null,
                 'persamaan_matematika' => $p['persamaan_matematika'] ?? null,
                 'batas_waktu' => $p['batas_waktu'] ?? null,
+
+                'skor' => $p['skor'] ?? null,
+                'skor_bonus_waktu' => $p['skor_bonus_waktu'] ?? null,
             ]);
         }
 

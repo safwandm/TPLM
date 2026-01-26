@@ -21,6 +21,9 @@ class PertanyaanController extends Controller
             'url_gambar' => 'nullable|string',
             'persamaan_matematika' => 'nullable|string',
             'batas_waktu' => 'nullable|integer',
+
+            'skor' => 'nullable|integer|min:1',
+            'skor_bonus_waktu' => 'nullable|integer|min:1',
         ]);
 
         $urutan = (Pertanyaan::where('kuis_id', $validated['kuis_id'])->max('urutan') ?? 0) + 1;
@@ -37,6 +40,9 @@ class PertanyaanController extends Controller
             'url_gambar' => $validated['url_gambar'] ?? null,
             'persamaan_matematika' => $validated['persamaan_matematika'] ?? null,
             'batas_waktu' => $validated['batas_waktu'] ?? null,
+
+            'skor' => $validated['skor'] ?? null,
+            'skor_bonus_waktu' => $validated['skor_bonus_waktu'] ?? null,
         ]);
 
         return response()->json($pertanyaan, 201);
@@ -56,6 +62,9 @@ class PertanyaanController extends Controller
             'persamaan_matematika' => 'nullable|string',
             'batas_waktu' => 'nullable|integer',
             'urutan' => 'nullable|integer',
+
+            'skor' => 'nullable|integer|min:1',
+            'skor_bonus_waktu' => 'nullable|integer|min:1',
         ]);
 
         if (isset($validated['urutan']) && $validated['urutan'] !== $pertanyaan->urutan) {

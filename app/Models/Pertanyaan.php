@@ -118,6 +118,8 @@ class Pertanyaan extends Model
         'tipe_pertanyaan',
         'opsi',
         'jawaban_benar',
+        'skor',
+        'skor_bonus_waktu'
     ];
 
     protected $casts = [

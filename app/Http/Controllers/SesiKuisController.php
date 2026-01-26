@@ -213,9 +213,12 @@ class SesiKuisController extends Controller
             $timeFactor = 1 - ($waktuJawabMs / $timeLimitMs);
             $timeFactor = max(0, min(1, $timeFactor));
 
+            $baseScore = $question->skor ?? config('quiz.base_score');
+            $timeBonusScore = $question->skor_bonus_waktu ?? config('quiz.time_bonus_score');
+
             $score =
-                (config('quiz.base_score') +
-                ($timeFactor * config('quiz.time_bonus_score')))
+                ($baseScore +
+                ($timeFactor * $timeBonusScore))
                 * $correctness;
 
             $peserta->total_skor += (int) round($score);
