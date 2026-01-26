@@ -2,10 +2,10 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
 use App\Models\Kuis;
 use App\Models\Pertanyaan;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class TestSeeder extends Seeder
@@ -19,7 +19,7 @@ class TestSeeder extends Seeder
             ['email' => 'teacher@example.com'],
             [
                 'name' => 'Teacher Example',
-                'password' => Hash::make('password123')
+                'password' => Hash::make('password123'),
             ]
         );
 
@@ -38,37 +38,49 @@ class TestSeeder extends Seeder
         ]);
 
         // ============================================================
-        // 3. CREATE SAMPLE QUESTIONS FOR THE KUIS
+        // 3. CREATE SAMPLE QUESTIONS (NEW STRUCTURE)
         // ============================================================
         $questions = [
             [
                 'urutan' => 1,
+                'tipe_pertanyaan' => 'multiple_choice_single',
                 'pertanyaan' => 'Berapakah hasil dari 5 + 7?',
-                'opsi_a' => '10',
-                'opsi_b' => '11',
-                'opsi_c' => '12',
-                'opsi_d' => '13',
-                'jawaban_benar' => 'c',
+                'opsi' => [
+                    '10',
+                    '11',
+                    '12',
+                    '13',
+                ],
+                'jawaban_benar' => 2, // index dari opsi (0-based)
                 'batas_waktu' => 30,
             ],
             [
                 'urutan' => 2,
+                'tipe_pertanyaan' => 'multiple_choice_single',
                 'pertanyaan' => 'Manakah bilangan prima?',
-                'opsi_a' => '4',
-                'opsi_b' => '6',
-                'opsi_c' => '7',
-                'opsi_d' => '9',
-                'jawaban_benar' => 'c',
+                'opsi' => [
+                    '4',
+                    '6',
+                    '7',
+                    '9',
+                ],
+                'jawaban_benar' => 2,
                 'batas_waktu' => 30,
             ],
         ];
 
         foreach ($questions as $q) {
-            Pertanyaan::create(array_merge($q, [
+            Pertanyaan::createValidated([
                 'kuis_id' => $kuis->id,
-            ]));
+                'urutan' => $q['urutan'],
+                'tipe_pertanyaan' => $q['tipe_pertanyaan'],
+                'pertanyaan' => $q['pertanyaan'],
+                'opsi' => $q['opsi'],
+                'jawaban_benar' => $q['jawaban_benar'],
+                'batas_waktu' => $q['batas_waktu'] ?? null,
+            ]);
         }
 
-        echo "KuisSeeder executed successfully.\n";
+        echo "TestSeeder executed successfully.\n";
     }
 }

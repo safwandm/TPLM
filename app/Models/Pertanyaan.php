@@ -5,6 +5,107 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
 
+/**
+ * ============================================================
+ * Struktur Kolom Opsi
+ * ============================================================
+ *
+ * ------------------------------------------------------------
+ * 1. multiple_choice_single
+ * ------------------------------------------------------------
+ * Pilihan ganda, SATU jawaban benar
+ *
+ * opsi:
+ * [
+ *   "Pilihan A",
+ *   "Pilihan B",
+ *   "Pilihan C",
+ *   "Pilihan D"
+ * ]
+ *
+ * jawaban_benar:
+ * int (index opsi, 0-based)
+ *
+ * Contoh:
+ * opsi = ["10", "11", "12", "13"]
+ * jawaban_benar = 2   // "12"
+ *
+ * ------------------------------------------------------------
+ * 2. multiple_choice_multi
+ * ------------------------------------------------------------
+ * Pilihan ganda, LEBIH DARI SATU jawaban benar
+ * Digunakan untuk soal yang bisa setengah benar.
+ *
+ * opsi:
+ * [
+ *   "Opsi 1",
+ *   "Opsi 2",
+ *   "Opsi 3",
+ *   "Opsi 4"
+ * ]
+ *
+ * jawaban_benar:
+ * int[] (array index opsi, unik, 0-based)
+ *
+ * Contoh:
+ * opsi = ["A", "B", "C", "D"]
+ * jawaban_benar = [0, 2]   // A dan C benar
+ *
+ * ------------------------------------------------------------
+ * 3. true_false
+ * ------------------------------------------------------------
+ * Soal benar / salah
+ *
+ * opsi:
+ * null (sudah pasti antara true atau false)
+ *
+ * jawaban_benar:
+ * bool
+ *
+ * Contoh:
+ * pertanyaan = "5 adalah bilangan prima"
+ * jawaban_benar = true
+ *
+ * ------------------------------------------------------------
+ * 4. ordering
+ * ------------------------------------------------------------
+ * Menyusun item ke urutan yang benar
+ *
+ * opsi:
+ * [
+ *   "Langkah pertama",
+ *   "Langkah kedua",
+ *   "Langkah ketiga"
+ * ]
+ *
+ * jawaban_benar:
+ * int[] (urutan index opsi yang benar, panjang HARUS sama)
+ *
+ * Contoh:
+ * opsi = ["B", "C", "A"]
+ * jawaban_benar = [2, 0, 1]   // urutan benar: A → B → C
+ *
+ * ------------------------------------------------------------
+ * 5. matching
+ * ------------------------------------------------------------
+ * Menjodohkan dua kolom (kiri ↔ kanan)
+ *
+ * opsi:
+ * {
+ *   "kiri":  ["Soal 1", "Soal 2", "Soal 3"],
+ *   "kanan": ["Jawaban A", "Jawaban B", "Jawaban C"]
+ * }
+ *
+ * jawaban_benar:
+ * object (mapping index kiri → index kanan)
+ *
+ * Contoh:
+ * jawaban_benar = {
+ *   0: 2,   // kiri[0] → kanan[2]
+ *   1: 0,
+ *   2: 1
+ * }
+ */
 class Pertanyaan extends Model
 {
     protected $fillable = [
