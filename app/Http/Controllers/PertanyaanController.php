@@ -59,6 +59,8 @@ class PertanyaanController extends Controller
             'jawaban_benar' => 'sometimes',
 
             'url_gambar' => 'nullable|string',
+            'url_video' => 'nullable|string',
+            'url_audio' => 'nullable|string',
             'persamaan_matematika' => 'nullable|string',
             'batas_waktu' => 'nullable|integer',
             'urutan' => 'nullable|integer',

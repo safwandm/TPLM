@@ -53,6 +53,8 @@ class ActivateQuestion implements ShouldQueue
             'pertanyaan_id' => $question->id,
             'pertanyaan' => $question->pertanyaan,
             'url_gambar' => $question->url_gambar,
+            'url_video' => $question->url_video,
+            'url_audio' => $question->url_audio,
             'persamaan_matematika' => $question->persamaan_matematika,
             'opsi' => $question->opsi,
             'batas_waktu' => $ttl,

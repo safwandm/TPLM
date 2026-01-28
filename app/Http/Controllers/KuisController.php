@@ -63,6 +63,8 @@ class KuisController extends Controller
             'pertanyaan.*.jawaban_benar' => 'required',
 
             'pertanyaan.*.url_gambar' => 'nullable|string',
+            'pertanyaan.*.url_video' => 'nullable|string',
+            'pertanyaan.*.url_audio' => 'nullable|string',
             'pertanyaan.*.persamaan_matematika' => 'nullable|string',
             'pertanyaan.*.batas_waktu' => 'nullable|integer',
 
@@ -88,6 +90,8 @@ class KuisController extends Controller
                 'jawaban_benar' => $p['jawaban_benar'],
 
                 'url_gambar' => $p['url_gambar'] ?? null,
+                'url_video' => $p['url_video'] ?? null,
+                'url_audio' => $p['url_audio'] ?? null,
                 'persamaan_matematika' => $p['persamaan_matematika'] ?? null,
                 'batas_waktu' => $p['batas_waktu'] ?? null,
 

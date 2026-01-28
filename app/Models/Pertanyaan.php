@@ -113,6 +113,8 @@ class Pertanyaan extends Model
         'urutan',
         'pertanyaan',
         'url_gambar',
+        'url_video',
+        'url_audio',
         'persamaan_matematika',
         'batas_waktu',
         'tipe_pertanyaan',
