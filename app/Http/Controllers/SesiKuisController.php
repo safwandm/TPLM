@@ -254,13 +254,13 @@ class SesiKuisController extends Controller
             ]
         );
 
-        if ($kuis->tampilkan_peringkat) {
-            # TODO: optimisasi, kalau salah gak perlu query ulang
-            $leaderboard = SesiPeserta::where('session_id', $session_id)
-                ->orderByDesc('total_skor')
-                ->orderBy('nama')
-                ->get(['nama', 'total_skor', 'hp_sisa']);
-        }
+        // if ($kuis->tampilkan_peringkat) {
+        # Hide di level UI saja untuk sekarang, soalnya guru juga dapat info leaderboard dari sini
+        $leaderboard = SesiPeserta::where('session_id', $session_id)
+            ->orderByDesc('total_skor')
+            ->orderBy('nama')
+            ->get(['nama', 'total_skor', 'hp_sisa']);
+        // }
 
         broadcast(new UpdateLeaderboard($session_id, $leaderboard));
 
