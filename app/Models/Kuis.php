@@ -12,6 +12,8 @@ class Kuis extends Model
         'total_waktu',
         'tampilkan_jawaban_benar',
         'tampilkan_peringkat',
+        'teks_waiting_room',
+        'teks_penutup'
     ];
 
     public function quiz()

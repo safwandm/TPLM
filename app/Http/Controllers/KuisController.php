@@ -34,7 +34,9 @@ class KuisController extends Controller
             'judul' => 'required|string',
             'total_waktu' => 'nullable|integer',
             'tampilkan_jawaban_benar' => 'boolean',
-            'tampilkan_peringkat' => 'boolean'
+            'tampilkan_peringkat' => 'boolean',
+            'teks_waiting_room' => 'nullable|string',
+            'teks_penutup' => 'nullable|string',
         ]);
 
         unset($validated['total_waktu']);
@@ -54,6 +56,8 @@ class KuisController extends Controller
             'total_waktu' => 'nullable|integer',
             'tampilkan_jawaban_benar' => 'boolean',
             'tampilkan_peringkat' => 'boolean',
+            'teks_waiting_room' => 'nullable|string',
+            'teks_penutup' => 'nullable|string',
 
             'pertanyaan' => 'required|array',
 
@@ -77,6 +81,8 @@ class KuisController extends Controller
             'judul' => $validated['judul'],
             'tampilkan_jawaban_benar' => $validated['tampilkan_jawaban_benar'] ?? false,
             'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false,
+            'teks_waiting_room' => $validated['teks_waiting_room'] ?? false,
+            'teks_penutup' => $validated['teks_penutup'] ?? false,
         ]);
 
         foreach ($validated['pertanyaan'] as $index => $p) {

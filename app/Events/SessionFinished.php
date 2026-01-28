@@ -27,6 +27,7 @@ class SessionFinished implements ShouldBroadcast
         return [
             'status' => $this->session->status,
             'berakhir_pada' => optional($this->session->berakhir_pada)->toIso8601String(),
+            'teks_penutup' => $this->session->kuis->teks_penutup,
         ];
     }
 

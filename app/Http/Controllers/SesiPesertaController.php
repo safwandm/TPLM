@@ -47,6 +47,7 @@ class SesiPesertaController extends Controller
         return response()->json([
             'message' => 'Berhasil bergabung ke sesi',
             'peserta' => $peserta,
+            'teks_waiting_room' => $sesi->kuis->teks_waiting_room
         ]);
     }
 }
