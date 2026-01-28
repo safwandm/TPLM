@@ -254,17 +254,20 @@ class SesiKuisController extends Controller
             ]
         );
 
-        # TODO: optimisasi, kalau salah gak perlu query ulang
-        $leaderboard = SesiPeserta::where('session_id', $session_id)
-            ->orderByDesc('total_skor')
-            ->orderBy('nama')
-            ->get(['nama', 'total_skor', 'hp_sisa']);
+        if ($kuis->tampilkan_peringkat) {
+            # TODO: optimisasi, kalau salah gak perlu query ulang
+            $leaderboard = SesiPeserta::where('session_id', $session_id)
+                ->orderByDesc('total_skor')
+                ->orderBy('nama')
+                ->get(['nama', 'total_skor', 'hp_sisa']);
+        }
 
         broadcast(new UpdateLeaderboard($session_id, $leaderboard));
 
         return response()->json([
             'message' => 'Jawaban disimpan',
-            'jawaban' => $jawaban
+            'jawaban' => $jawaban,
+            'jawaban_benar' => $kuis->tampilkan_jawaban_benar ? $question->jawaban_benar : null
         ]);
     }
 }
