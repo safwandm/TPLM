@@ -180,6 +180,18 @@ class SesiKuisController extends Controller
             return response()->json(['message' => 'Sesi tidak sedang berjalan'], 422);
         }
 
+        // Cek sisa
+        $kuis = $sesi->kuis;
+        if (
+            $kuis->mode === 'game' &&
+            $peserta->hp_sisa !== null &&
+            $peserta->hp_sisa <= 0
+        ) {
+            return response()->json([
+                'message' => 'HP kamu sudah habis'
+            ], 403);
+        }
+
         // Validasi pertanyaan aktif
         $currentQuestionId = Cache::get("sesi:{$session_id}:current_question");
 
@@ -222,8 +234,13 @@ class SesiKuisController extends Controller
                 * $correctness;
 
             $peserta->total_skor += (int) round($score);
-            $peserta->save();
         }
+
+        if ($kuis->mode === 'game' && $correctness <= 0) {
+            $peserta->hp_sisa = max(0, $peserta->hp_sisa - 1);
+        }
+
+        $peserta->save();
 
         $jawaban = JawabanPeserta::updateOrCreate(
             [
@@ -237,11 +254,11 @@ class SesiKuisController extends Controller
             ]
         );
 
-        # TODO: optimisasi, kalau  salah gak perlu query ulang
+        # TODO: optimisasi, kalau salah gak perlu query ulang
         $leaderboard = SesiPeserta::where('session_id', $session_id)
             ->orderByDesc('total_skor')
             ->orderBy('nama')
-            ->get(['nama', 'total_skor']);
+            ->get(['nama', 'total_skor', 'hp_sisa']);
 
         broadcast(new UpdateLeaderboard($session_id, $leaderboard));
 
