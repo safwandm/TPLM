@@ -34,10 +34,24 @@ class KuisController extends Controller
             'judul' => 'required|string',
             'total_waktu' => 'nullable|integer',
             'tampilkan_jawaban_benar' => 'boolean',
-            'tampilkan_peringkat' => 'boolean'
+            'tampilkan_peringkat' => 'boolean',
+
+            'mode' => 'nullable|in:classic,game',
+            'hp_awal' => 'nullable|integer|min:1',
         ]);
 
         unset($validated['total_waktu']);
+
+        $mode = $validated['mode'] ?? 'classic';
+        $hp_awal = $validated['hp_awal'] ?? config('quiz.starting_hp');
+
+        if ($mode === 'game' && empty($validated['hp_awal'])) {
+            $validated['hp_awal'] = $hp_awal;
+        }
+
+        if ($mode === 'classic') {
+            $validated['hp_awal'] = null;
+        }
 
         $kuis = Kuis::create([
             'creator_id' => $request->user()->id,
@@ -55,6 +69,9 @@ class KuisController extends Controller
             'tampilkan_jawaban_benar' => 'boolean',
             'tampilkan_peringkat' => 'boolean',
 
+            'mode' => 'nullable|in:classic,game',
+            'hp_awal' => 'nullable|integer|min:1',
+
             'pertanyaan' => 'required|array',
 
             'pertanyaan.*.tipe_pertanyaan' => 'required|string',
@@ -70,9 +87,16 @@ class KuisController extends Controller
             'pertanyaan.*.skor_bonus_waktu' => 'nullable|integer|min:1',
         ]);
 
+        $mode = $validated['mode'] ?? 'classic';
+        $hp_awal = $validated['hp_awal'] ?? config('quiz.starting_hp');
+
         $kuis = Kuis::create([
             'creator_id' => $request->user()->id,
             'judul' => $validated['judul'],
+            'mode' => $mode['mode'],
+            'hp_awal' => $mode === 'game'
+                ? $hp_awal
+                : null,
             'tampilkan_jawaban_benar' => $validated['tampilkan_jawaban_benar'] ?? false,
             'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false,
         ]);
