@@ -8,10 +8,12 @@ class Kuis extends Model
 {
     protected $fillable = [
         'judul',
+        'mode',
         'creator_id',
         'total_waktu',
         'tampilkan_jawaban_benar',
         'tampilkan_peringkat',
+        'hp_awal'
     ];
 
     public function quiz()

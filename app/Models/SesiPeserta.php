@@ -12,7 +12,8 @@ class SesiPeserta extends Model
     protected $fillable = [
         'session_id',
         'nama',
-        'total_skor'
+        'total_skor',
+        'hp_sisa'
     ];
 
     public function session()
