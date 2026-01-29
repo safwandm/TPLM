@@ -55,7 +55,7 @@ class PertanyaanController extends Controller
         $validated = $request->validate([
             'tipe_pertanyaan' => 'sometimes|string',
             'pertanyaan' => 'sometimes|string',
-            'opsi' => 'sometimes|array',
+            'opsi' => 'nullable',
             'jawaban_benar' => 'sometimes',
 
             'url_gambar' => 'nullable|string',
