@@ -23,6 +23,9 @@ export default function StudentQuiz() {
         tampilkan_jawaban_benar: false,
         tampilkan_peringkat: false,
     });
+    const [hp, setHp] = useState(null);
+    const [timeoutPenaltyApplied, setTimeoutPenaltyApplied] = useState(false);
+    const isGameMode = quizConfig.mode === "game";
 
     /* ================= TIMER ================= */
     const [timeLeft, setTimeLeft] = useState(null);
@@ -38,7 +41,13 @@ export default function StudentQuiz() {
     useEffect(() => {
         async function fetchConfig() {
             const res = await webFetch(WebAPI.session.getConfig(sessionId));
-            setQuizConfig(await res.json());
+            const config = await res.json();
+            setQuizConfig(config);
+
+            // set HP awal hanya sekali
+            if (config.mode === "game" && hp === null) {
+                setHp(config.hp_awal);
+            }
         }
 
         fetchConfig();
@@ -88,12 +97,49 @@ export default function StudentQuiz() {
         return () => clearInterval(t);
     }, [timeLeft]);
 
+    /* ================= TIMEOUT PENALTY ================= */
+    useEffect(() => {
+        if (
+            !quizConfig ||
+            quizConfig.mode !== "game" ||
+            hp === null ||
+            hp <= 0
+        ) return;
+
+        // waktu habis & belum menjawab
+        if (
+            timeLeft === 0 &&
+            status === "idle" &&
+            !timeoutPenaltyApplied
+        ) {
+            setHp(prev => Math.max(0, prev - 1));
+            setTimeoutPenaltyApplied(true);
+
+            // update localStorage biar konsisten
+            const latestPeserta = JSON.parse(
+                localStorage.getItem("peserta")
+            );
+
+            if (latestPeserta) {
+                latestPeserta.hp_sisa = Math.max(
+                    0,
+                    (latestPeserta.hp_sisa ?? hp) - 1
+                );
+                localStorage.setItem(
+                    "peserta",
+                    JSON.stringify(latestPeserta)
+                );
+            }
+        }
+    }, [timeLeft, status, quizConfig.mode]);
+
     /* ================= HELPERS ================= */
     function resetState() {
         setStatus("idle");
         setSelectedAnswer(null);
         setCorrectAnswer(null);
         setIsCorrect(null);
+        setTimeoutPenaltyApplied(false);
     }
 
     function getCsrfToken() {
@@ -108,6 +154,12 @@ export default function StudentQuiz() {
     /* ================= SUBMIT ================= */
     async function submitAnswer() {
         if (status !== "idle" || timeLeft === 0) return;
+
+        if (
+            status !== "idle" ||
+            timeLeft === 0 ||
+            (isGameMode && hp <= 0)
+        ) return;
 
         setStatus("answered");
 
@@ -137,6 +189,17 @@ export default function StudentQuiz() {
             if (quizConfig.tampilkan_jawaban_benar) {
                 setIsCorrect(data.jawaban.is_benar);
                 setCorrectAnswer(currentQuestion.jawaban_benar);
+            }
+
+            if (isGameMode && typeof data.hp_sisa === "number") {
+                setHp(data.hp_sisa);
+
+                // simpan juga ke localStorage biar konsisten
+                const latestPeserta = {
+                    ...peserta,
+                    hp_sisa: data.hp_sisa,
+                };
+                localStorage.setItem("peserta", JSON.stringify(latestPeserta));
             }
 
             setStatus("result");
@@ -418,7 +481,10 @@ export default function StudentQuiz() {
                                             <span>
                                                 {i + 1}. {p.nama}
                                             </span>
-                                            <span>{p.total_skor}</span>
+                                            <span>
+                                                {p.total_skor}
+                                                {quizConfig.mode === "game" && ` ❤️ ${p.hp_sisa}`}
+                                            </span>
                                         </li>
                                     ))}
                                 </ul>
@@ -446,9 +512,29 @@ export default function StudentQuiz() {
                 Soal {questionIndex}
             </div>
 
+            {isGameMode && hp !== null && (
+                <div className="mb-2 text-white font-bold">
+                    ❤️ HP: {hp}
+                </div>
+            )}
+
+            {isGameMode && hp <= 0 && (
+                <div className="mt-4 bg-red-600 text-white px-4 py-2 rounded">
+                    💀 HP kamu habis, kamu tidak bisa lagi menjawab soal
+                </div>
+            )}
+
+
             <div className="text-white mb-4">
                 ⏱ Sisa waktu: <b>{timeLeft}s</b>
             </div>
+
+            {isGameMode && timeLeft === 0 && status === "idle" && (
+                <div className="mt-4 text-yellow-300 font-semibold">
+                    Waktu habis — HP berkurang
+                </div>
+            )}
+
 
             <h2 className="text-white text-xl mb-6 text-center">
                 {currentQuestion.pertanyaan}
@@ -467,14 +553,12 @@ export default function StudentQuiz() {
                     <h3 className="font-bold mb-2">Leaderboard</h3>
                     <ul className="space-y-1">
                         {leaderboard.slice(0, 5).map((p, i) => (
-                            <li
-                                key={i}
-                                className="flex justify-between text-sm"
-                            >
+                            <li className="flex justify-between text-sm">
+                                <span>{i + 1}. {p.nama}</span>
                                 <span>
-                                    {i + 1}. {p.nama}
+                                    {p.total_skor}
+                                    {isGameMode && ` ❤️ ${p.hp_sisa}`}
                                 </span>
-                                <span>{p.total_skor}</span>
                             </li>
                         ))}
                     </ul>

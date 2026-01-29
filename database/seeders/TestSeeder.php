@@ -122,6 +122,28 @@ class TestSeeder extends Seeder
             ]);
         }
 
+        $kuis = Kuis::create([
+            'creator_id' => $teacher->id,
+            'judul' => 'Contoh Kuis Matematika (game)',
+            'tampilkan_jawaban_benar' => true,
+            'tampilkan_peringkat' => true,
+            'mode' => 'game',
+            'hp_awal' => 3
+        ]);
+
+        foreach ($questions as $q) {
+            Pertanyaan::createValidated([
+                'kuis_id' => $kuis->id,
+                'urutan' => $q['urutan'],
+                'tipe_pertanyaan' => $q['tipe_pertanyaan'],
+                'pertanyaan' => $q['pertanyaan'],
+                'opsi' => $q['opsi'],
+                'jawaban_benar' => $q['jawaban_benar'],
+                'batas_waktu' => $q['batas_waktu'] ?? null,
+            ]);
+        }
+        
+
         echo "TestSeeder executed successfully.\n";
     }
 }

@@ -149,3 +149,4 @@ Route::post(
 );
 Route::get('/sesi/{id}/config', [SesiKuisController::class, 'config']);
 Route::post('/join/{kode}', [SesiPesertaController::class, 'join']);
+Route::get('/sesi/peserta/{peserta_id}', [SesiPesertaController::class, 'get']);

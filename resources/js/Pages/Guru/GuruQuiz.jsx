@@ -119,6 +119,15 @@ export default function GuruQuiz() {
         }
     }
 
+    var aliveCount = leaderboard.filter(
+        p => typeof p.hp_sisa === "number" && p.hp_sisa > 0
+    ).length;
+    var totalPeserta = leaderboard.length;
+    if (leaderboard.length != participants.length) {
+        aliveCount = participants.length;
+        totalPeserta = participants.length;
+    }
+
     /* ================= UI ================= */
     return (
         <ProtectedLayout allowedRoles={["teacher"]}>
@@ -141,6 +150,12 @@ export default function GuruQuiz() {
                         <p>Kode: <b>{sesi?.kode}</b></p>
                         <p>Status: <b>{status}</b></p>
                         <p>Peserta: <b>{participants.length}</b></p>
+
+                        {sesi?.kuis?.mode === "game" && (
+                            <p className="mt-1 text-red-700 font-semibold">
+                                ❤️ Siswa bertahan: {aliveCount} / {totalPeserta}
+                            </p>
+                        )}
                     </div>
 
                     {/* WAITING */}
@@ -221,13 +236,37 @@ function Leaderboard({ leaderboard }) {
     return (
         <div className="mt-6">
             <h3 className="font-semibold mb-2">Leaderboard</h3>
-            <ul className="border rounded p-3">
+            <ul className="border rounded p-3 space-y-1">
                 {leaderboard.map((l, i) => (
-                    <li key={l.id ?? i}>
-                        {i + 1}. {l.nama} — {l.total_skor}
+                    <li
+                        key={l.id ?? i}
+                        className="flex justify-between items-center"
+                    >
+                        <span>
+                            {i + 1}. {l.nama}
+                        </span>
+
+                        <span className="flex gap-3 items-center">
+                            <span className="font-semibold">
+                                {l.total_skor}
+                            </span>
+
+                            {typeof l.hp_sisa === "number" && (
+                                <span
+                                    className={`text-sm font-bold ${
+                                        l.hp_sisa > 0
+                                            ? "text-red-600"
+                                            : "text-gray-400"
+                                    }`}
+                                >
+                                    ❤️ {l.hp_sisa}
+                                </span>
+                            )}
+                        </span>
                     </li>
                 ))}
             </ul>
         </div>
     );
 }
+

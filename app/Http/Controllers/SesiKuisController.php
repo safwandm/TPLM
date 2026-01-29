@@ -49,6 +49,9 @@ class SesiKuisController extends Controller
         return response()->json([
             'tampilkan_jawaban_benar' => (bool) $session->kuis->tampilkan_jawaban_benar,
             'tampilkan_peringkat' => (bool) $session->kuis->tampilkan_peringkat,
+            'teks_waiting_room' => $session->kuis->teks_waiting_room,
+            'mode' => $session->kuis->mode,
+            'hp_awal' => $session->kuis->hp_awal,
         ]);
     }
 
@@ -126,6 +129,13 @@ class SesiKuisController extends Controller
             $first->id,
             $questions->pluck('id')->toArray()
         )->delay(now()->addSeconds($startDelay));
+
+        $leaderboard = SesiPeserta::where('session_id', $session->id)
+            ->orderByDesc('total_skor')
+            ->orderBy('nama')
+            ->get(['nama', 'total_skor', 'hp_sisa']);
+
+        broadcast(new UpdateLeaderboard($session->id, $leaderboard));
 
         return response()->json(['message' => 'Sesi dimulai'], 200);
     }

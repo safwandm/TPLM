@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\SesiKuis;
 use App\Models\SesiPeserta;
 use App\Events\ParticipantsUpdated;
+use App\Events\UpdateLeaderboard;
 use Illuminate\Support\Facades\Log;
 
 class SesiPesertaController extends Controller
@@ -54,5 +55,10 @@ class SesiPesertaController extends Controller
             'peserta' => $peserta,
             'teks_waiting_room' => $sesi->kuis->teks_waiting_room
         ]);
+    }
+
+    public function get(Request $request, $peserta_id)
+    {
+        return response()->json(SesiPeserta::findOrFail($request->peserta_id));
     }
 }

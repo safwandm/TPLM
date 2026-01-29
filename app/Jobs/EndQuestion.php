@@ -17,6 +17,7 @@ use App\Models\SesiPeserta;
 use App\Models\JawabanPeserta;
 use App\Events\QuestionEnded;
 use App\Events\SessionFinished;
+use App\Events\UpdateLeaderboard;
 use App\Jobs\ActivateQuestion;
 
 class EndQuestion implements ShouldQueue
@@ -61,13 +62,25 @@ class EndQuestion implements ShouldQueue
                         'pertanyaan_id' => $question->id,
                         'jawaban' => null,
                         'waktu_jawab_ms' => null,
-                        'is_benar' => false,
+                        'correctness' => 0,
                     ]);
+
+                    if ($session->kuis->mode == 'game') {
+                        $p->hp_sisa = max(0, $p->hp_sisa - 1);
+                        $p->save();
+                    }
                     continue;
                 }
             }
         });
 
+        $leaderboard = SesiPeserta::where('session_id', $this->sessionId)
+            ->orderByDesc('total_skor')
+            ->orderBy('nama')
+            ->get(['nama', 'total_skor', 'hp_sisa']);
+
+        broadcast(new UpdateLeaderboard($this->sessionId, $leaderboard));
+        
         // hapus cache current question (sudah berakhir)
         Cache::forget("sesi:{$this->sessionId}:current_question");
         Cache::forget("sesi:{$this->sessionId}:question_ends_at");
