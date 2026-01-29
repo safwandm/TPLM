@@ -29,10 +29,15 @@ class SesiPesertaController extends Controller
             return response()->json(['message' => 'Nama sudah dipakai dalam sesi ini'], 422);
         }
 
+        $kuis = $sesi->kuis;
+
         $peserta = SesiPeserta::create([
             'session_id' => $sesi->id,
             'nama' => $request->nama,
-            'total_skor' => 0
+            'total_skor' => 0,
+            'hp_sisa' => $kuis->mode === 'game'
+                ? $kuis->hp_awal
+                : null,
         ]);
         
         $pesertaList = SesiPeserta::where('session_id', $sesi->id)
