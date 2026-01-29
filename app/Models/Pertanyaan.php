@@ -183,30 +183,48 @@ class Pertanyaan extends Model
 
     protected function cekOrdering(array $jawabanMurid): float
     {
-        return $jawabanMurid === $this->jawaban_benar ? 1.0 : 0.0;
-    }
+        $jawabanBenar = $this->jawaban_benar;
 
-    protected function cekMatching(array $jawabanMurid): bool
-    {
-        /*
-         * jawaban_benar:
-         * [
-         *   0 => 2,
-         *   1 => 0,
-         *   2 => 1
-         * ]
-         */
+        $total = count($jawabanBenar);
+        if ($total === 0) {
+            return 0.0;
+        }
 
-        foreach ($this->jawaban_benar as $kiri => $kanan) {
+        $benar = 0;
+
+        foreach ($jawabanBenar as $index => $nilaiBenar) {
             if (
-                !array_key_exists($kiri, $jawabanMurid) ||
-                $jawabanMurid[$kiri] !== $kanan
+                array_key_exists($index, $jawabanMurid) &&
+                $jawabanMurid[$index] === $nilaiBenar
             ) {
-                return 0.0;
+                $benar++;
             }
         }
 
-        return 1.0;
+        return round($benar / $total, 2);
+    }
+
+    protected function cekMatching(array $jawabanMurid): float
+    {
+        $jawabanBenar = $this->jawaban_benar;
+
+        $total = count($jawabanBenar);
+        if ($total === 0) {
+            return 0.0;
+        }
+
+        $benar = 0;
+
+        foreach ($jawabanBenar as $kiri => $kananBenar) {
+            if (
+                array_key_exists($kiri, $jawabanMurid) &&
+                $jawabanMurid[$kiri] === $kananBenar
+            ) {
+                $benar++;
+            }
+        }
+
+        return round($benar / $total, 2);
     }
 
     
