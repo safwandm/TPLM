@@ -157,7 +157,7 @@ class SesiKuisController extends Controller
 
         $request->validate([
             'peserta_id' => 'required|exists:sesi_pesertas,id',
-            'jawaban' => 'nullable|in:a,b,c,d',
+            'jawaban' => 'required',
             'pertanyaan_id' => 'required|integer'
         ]);
 

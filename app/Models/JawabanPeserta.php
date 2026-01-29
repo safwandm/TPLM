@@ -17,6 +17,10 @@ class JawabanPeserta extends Model
         'correctness',
     ];
 
+    protected $casts = [
+        'jawaban' => 'array', 
+    ];
+
     public function peserta()
     {
         return $this->belongsTo(SesiPeserta::class, 'peserta_id');
