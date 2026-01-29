@@ -16,7 +16,6 @@ export default function StudentQuiz() {
     const [isCorrect, setIsCorrect] = useState(null);
 
     const [leaderboard, setLeaderboard] = useState([]);
-
     const [quizFinished, setQuizFinished] = useState(false);
     const [finalScore, setFinalScore] = useState(0);
 
@@ -25,6 +24,8 @@ export default function StudentQuiz() {
         tampilkan_peringkat: false,
     });
 
+    /* ================= TIMER ================= */
+    const [timeLeft, setTimeLeft] = useState(null);
 
     /* ================= SAFETY ================= */
     useEffect(() => {
@@ -35,22 +36,9 @@ export default function StudentQuiz() {
 
     /* ================= SOCKET ================= */
     useEffect(() => {
-
         async function fetchConfig() {
-            try {
-                const res = await webFetch(
-                    WebAPI.session.getConfig(sessionId)
-                );
-
-                const data = await res.json();
-                console.log("Fetched quiz config:", data);
-
-                setQuizConfig(data);
-
-                console.log("Loaded quiz config:", data);
-            } catch (err) {
-                console.error("Failed to load quiz config", err);
-            }
+            const res = await webFetch(WebAPI.session.getConfig(sessionId));
+            setQuizConfig(await res.json());
         }
 
         fetchConfig();
@@ -58,22 +46,16 @@ export default function StudentQuiz() {
         const channel = window.Echo.channel(`sesi.${sessionId}`);
 
         channel
-
-            .listenToAll((event, data) => {
-                console.log("EVENT:", event, data);
-            })
             .listen(".QuestionStarted", (e) => {
-                setCurrentQuestion({
-                    pertanyaan_id: e.pertanyaan_id,
-                    pertanyaan: e.pertanyaan,
-                    opsi: e.opsi,
-                    jawaban_benar: e.jawaban_benar ?? null,
-                });
-
+                setCurrentQuestion(e);
                 setQuestionIndex((p) => p + 1);
                 resetState();
-            })
 
+                if (e.ends_at) {
+                    const end = new Date(e.ends_at).getTime();
+                    setTimeLeft(Math.max(0, Math.floor((end - Date.now()) / 1000)));
+                }
+            })
             .listen(".LeaderboardUpdated", (e) => {
                 setLeaderboard(e.leaderboard);
             })
@@ -81,16 +63,30 @@ export default function StudentQuiz() {
                 const latestPeserta = JSON.parse(
                     localStorage.getItem("peserta")
                 );
-
                 setFinalScore(latestPeserta?.total_skor ?? 0);
                 setQuizFinished(true);
                 setCurrentQuestion(null);
             });
 
-        return () => {
-            window.Echo.leave(`sesi.${sessionId}`);
-        };
+        return () => window.Echo.leave(`sesi.${sessionId}`);
     }, [sessionId]);
+
+    /* ================= TIMER EFFECT ================= */
+    useEffect(() => {
+        if (timeLeft === null || timeLeft <= 0) return;
+
+        const t = setInterval(() => {
+            setTimeLeft((p) => {
+                if (p <= 1) {
+                    clearInterval(t);
+                    return 0;
+                }
+                return p - 1;
+            });
+        }, 1000);
+
+        return () => clearInterval(t);
+    }, [timeLeft]);
 
     /* ================= HELPERS ================= */
     function resetState() {
@@ -110,10 +106,9 @@ export default function StudentQuiz() {
     }
 
     /* ================= SUBMIT ================= */
-    async function handleAnswer(choice) {
-        if (status !== "idle") return;
+    async function submitAnswer() {
+        if (status !== "idle" || timeLeft === 0) return;
 
-        setSelectedAnswer(choice);
         setStatus("answered");
 
         try {
@@ -131,7 +126,7 @@ export default function StudentQuiz() {
                     body: JSON.stringify({
                         peserta_id: peserta.id,
                         pertanyaan_id: currentQuestion.pertanyaan_id,
-                        jawaban: choice,
+                        jawaban: selectedAnswer,
                     }),
                 }
             );
@@ -141,51 +136,257 @@ export default function StudentQuiz() {
 
             if (quizConfig.tampilkan_jawaban_benar) {
                 setIsCorrect(data.jawaban.is_benar);
-                setCorrectAnswer(
-                    data.jawaban.is_benar
-                        ? choice
-                        : currentQuestion.jawaban_benar
-                );
+                setCorrectAnswer(currentQuestion.jawaban_benar);
             }
 
             setStatus("result");
         } catch (err) {
-            console.error("Submit error", err);
+            console.error(err);
         }
     }
 
-    /* ================= UI HELPERS ================= */
-    function getOptionClass(key) {
-        const base = {
-            a: "bg-red-500",
-            b: "bg-blue-500",
-            c: "bg-orange-500",
-            d: "bg-purple-500",
-        }[key];
+    /* ================= RENDERERS ================= */
 
-        if (status === "idle") return base;
+    
+    function renderMultipleChoiceSingle() {
+        return (
+            <>
+                <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                    {currentQuestion.opsi.map((opt, i) => (
+                        <button
+                            key={i}
+                            disabled={status !== "idle"}
+                            onClick={() => setSelectedAnswer(i)}
+                            className={`h-28 rounded-xl font-bold ${
+                                selectedAnswer === i
+                                    ? "bg-blue-700 text-white"
+                                    : "bg-gray-300"
+                            }`}
+                        >
+                            {opt}
+                        </button>
+                    ))}
+                </div>
 
-        if (status === "answered") {
-            return key === selectedAnswer
-                ? `${base} opacity-80`
-                : `${base} opacity-40`;
+                <button
+                    disabled={selectedAnswer === null || status !== "idle"}
+                    onClick={submitAnswer}
+                    className="mt-4 bg-green-600 text-white px-6 py-2 rounded"
+                >
+                    Kirim Jawaban
+                </button>
+            </>
+        );
+    }
+
+    function renderMultipleChoiceMulti() {
+        const toggle = (i) => {
+            setSelectedAnswer((prev) => {
+                prev = prev ?? []
+                return prev.includes(i)
+                    ? prev.filter((x) => x !== i)
+                    : [...prev, i]
+            });
+        };
+
+        return (
+            <>
+                <div className="grid grid-cols-2 gap-4 w-full max-w-md">
+                    {currentQuestion.opsi.map((opt, i) => (
+                        <button
+                            key={i}
+                            disabled={status !== "idle"}
+                            onClick={() => toggle(i)}
+                            className={`h-28 rounded-xl font-bold ${
+                                selectedAnswer?.includes(i)
+                                    ? "bg-green-600 text-white"
+                                    : "bg-gray-300"
+                            }`}
+                        >
+                            {opt}
+                        </button>
+                    ))}
+                </div>
+
+                <button
+                    className="mt-4 bg-blue-600 text-white px-6 py-2 rounded"
+                    disabled={status !== "idle"}
+                    onClick={() => submitAnswer(selectedAnswer ?? [])}
+                >
+                    Kirim Jawaban
+                </button>
+            </>
+        );
+    }
+
+        function renderTrueFalse() {
+        return (
+            <>
+                <div className="flex gap-4">
+                    {[true, false].map((v) => (
+                        <button
+                            key={String(v)}
+                            disabled={status !== "idle"}
+                            onClick={() => setSelectedAnswer(v)}
+                            className={`px-10 py-6 rounded-xl text-xl ${
+                                selectedAnswer === v
+                                    ? "bg-blue-700 text-white"
+                                    : "bg-gray-300"
+                            }`}
+                        >
+                            {v ? "Benar" : "Salah"}
+                        </button>
+                    ))}
+                </div>
+
+                <button
+                    disabled={selectedAnswer === null || status !== "idle"}
+                    onClick={submitAnswer}
+                    className="mt-4 bg-green-600 text-white px-6 py-2 rounded"
+                >
+                    Kirim Jawaban
+                </button>
+            </>
+        );
+    }
+
+    function renderOrdering() {
+        // fallback: kalau selectedAnswer kosong, pakai urutan default
+        const order =
+            selectedAnswer && selectedAnswer.length > 0
+                ? selectedAnswer
+                : currentQuestion.opsi.map((_, i) => i);
+
+        const moveUp = (idx) => {
+            setSelectedAnswer((prev) => {
+                const arr =
+                    prev && prev.length > 0
+                        ? [...prev]
+                        : currentQuestion.opsi.map((_, i) => i);
+
+                [arr[idx - 1], arr[idx]] = [arr[idx], arr[idx - 1]];
+                return arr;
+            });
+        };
+
+        const moveDown = (idx) => {
+            setSelectedAnswer((prev) => {
+                const arr =
+                    prev && prev.length > 0
+                        ? [...prev]
+                        : currentQuestion.opsi.map((_, i) => i);
+
+                [arr[idx], arr[idx + 1]] = [arr[idx + 1], arr[idx]];
+                return arr;
+            });
+        };
+
+        return (
+            <div className="space-y-2">
+                {order.map((optIndex, idx) => (
+                    <div
+                        key={optIndex}
+                        className="flex items-center justify-between bg-gray-200 p-3 rounded"
+                    >
+                        {/* Isi opsi */}
+                        <div className="flex items-center gap-3">
+                            <span className="font-semibold w-6">
+                                {idx + 1}.
+                            </span>
+                            <span>{currentQuestion.opsi[optIndex]}</span>
+                        </div>
+
+                        {/* Tombol naik / turun */}
+                        <div className="flex flex-col gap-1">
+                            {idx > 0 && (
+                                <button
+                                    disabled={status !== "idle"}
+                                    onClick={() => moveUp(idx)}
+                                    className="px-2 py-1 bg-gray-400 rounded disabled:opacity-50"
+                                >
+                                    ↑
+                                </button>
+                            )}
+
+                            {idx < order.length - 1 && (
+                                <button
+                                    disabled={status !== "idle"}
+                                    onClick={() => moveDown(idx)}
+                                    className="px-2 py-1 bg-gray-400 rounded disabled:opacity-50"
+                                >
+                                    ↓
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                ))}
+
+                <button
+                    className="mt-4 bg-blue-600 text-white px-6 py-2 rounded"
+                    onClick={() => submitAnswer(order)}
+                >
+                    Kirim Urutan
+                </button>
+            </div>
+        );
+    }
+
+    function renderMatching() {
+        const kiri = currentQuestion.opsi.kiri;
+        const kanan = currentQuestion.opsi.kanan;
+
+        return (
+            <div className="space-y-3">
+                {kiri.map((k, i) => (
+                    <div key={i} className="flex gap-2 items-center">
+                        <div className="flex-1 bg-gray-200 p-2 rounded">
+                            {k}
+                        </div>
+                        <select
+                            disabled={status !== "idle"}
+                            onChange={(e) =>
+                                setSelectedAnswer((prev = {}) => ({
+                                    ...prev,
+                                    [i]: Number(e.target.value),
+                                }))
+                            }
+                            className="p-2 rounded"
+                        >
+                            <option value="">Pilih</option>
+                            {kanan.map((j, idx) => (
+                                <option key={idx} value={idx}>
+                                    {j}
+                                </option>
+                            ))}
+                        </select>
+                    </div>
+                ))}
+
+                <button
+                    className="mt-4 bg-blue-600 text-white px-6 py-2 rounded"
+                    onClick={() => submitAnswer(selectedAnswer ?? {})}
+                >
+                    Kirim Pasangan
+                </button>
+            </div>
+        );
+    }
+
+    function renderQuestionByType() {
+        switch (currentQuestion.tipe_pertanyaan) {
+            case "multiple_choice_single":
+                return renderMultipleChoiceSingle();
+            case "multiple_choice_multi":
+                return renderMultipleChoiceMulti();
+            case "true_false":
+                return renderTrueFalse();
+            case "ordering":
+                return renderOrdering();
+            case "matching":
+                return renderMatching();
+            default:
+                return <div>Tipe soal tidak dikenali</div>;
         }
-
-        if (status === "result") {
-            if (!quizConfig.tampilkan_jawaban_benar) {
-                return key === selectedAnswer
-                    ? `${base} opacity-80`
-                    : `${base} opacity-40`;
-            }
-
-            if (key === correctAnswer) return "bg-green-600";
-            if (key === selectedAnswer && !isCorrect)
-                return "bg-red-600";
-
-            return "bg-gray-400 opacity-40";
-        }
-
-        return base;
     }
 
     /* ================= FINISHED ================= */
@@ -193,9 +394,7 @@ export default function StudentQuiz() {
         return (
             <div className="min-h-screen flex items-center justify-center bg-blue-900 text-white">
                 <div className="bg-white text-black rounded-xl p-8 w-full max-w-md text-center">
-                    <h1 className="text-2xl font-bold mb-4">
-                        🎉 Kuis Selesai!
-                    </h1>
+                    <h1 className="text-2xl font-bold mb-4">🎉 Kuis Selesai!</h1>
 
                     {quizConfig.tampilkan_peringkat && (
                         <>
@@ -226,13 +425,6 @@ export default function StudentQuiz() {
                             </div>
                         </>
                     )}
-
-                    <button
-                        className="mt-6 bg-blue-600 text-white px-6 py-2 rounded"
-                        onClick={() => (window.location.href = "/")}
-                    >
-                        Kembali ke Beranda
-                    </button>
                 </div>
             </div>
         );
@@ -247,31 +439,28 @@ export default function StudentQuiz() {
         );
     }
 
-    /* ================= QUESTION UI ================= */
+    /* ================= UI ================= */
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-blue-900 to-blue-700 p-4">
-            <div className="bg-white rounded-full px-6 py-2 mb-6">
+        <div className="min-h-screen flex flex-col items-center justify-center bg-blue-900 p-4">
+            <div className="bg-white rounded-full px-6 py-2 mb-2">
                 Soal {questionIndex}
+            </div>
+
+            <div className="text-white mb-4">
+                ⏱ Sisa waktu: <b>{timeLeft}s</b>
             </div>
 
             <h2 className="text-white text-xl mb-6 text-center">
                 {currentQuestion.pertanyaan}
             </h2>
 
-            <div className="grid grid-cols-2 gap-4 w-full max-w-md">
-                {["a", "b", "c", "d"].map((key) => (
-                    <button
-                        key={key}
-                        disabled={status !== "idle"}
-                        onClick={() => handleAnswer(key)}
-                        className={`h-36 rounded-xl text-white text-2xl font-bold ${getOptionClass(
-                            key
-                        )}`}
-                    >
-                        {key}. {currentQuestion.opsi[key]}
-                    </button>
-                ))}
-            </div>
+            {renderQuestionByType()}
+
+            {status !== "idle" && (
+                <div className="mt-4 text-white">
+                    ✅ Jawaban terkirim
+                </div>
+            )}
 
             {quizConfig.tampilkan_peringkat && leaderboard.length > 0 && (
                 <div className="mt-8 w-full max-w-md bg-white rounded-xl p-4">
