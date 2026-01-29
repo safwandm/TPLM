@@ -15,7 +15,7 @@ class PertanyaanController extends Controller
 
             'tipe_pertanyaan' => 'required|string',
             'pertanyaan' => 'required|string',
-            'opsi' => 'required|array',
+            'opsi' => 'nullable',
             'jawaban_benar' => 'required',
 
             'url_gambar' => 'nullable|string',

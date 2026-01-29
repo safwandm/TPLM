@@ -80,7 +80,7 @@ class KuisController extends Controller
 
             'pertanyaan.*.tipe_pertanyaan' => 'required|string',
             'pertanyaan.*.pertanyaan' => 'required|string',
-            'pertanyaan.*.opsi' => 'required|array',
+            'pertanyaan.*.opsi' => 'nullable',
             'pertanyaan.*.jawaban_benar' => 'required',
 
             'pertanyaan.*.url_gambar' => 'nullable|string',
@@ -99,7 +99,7 @@ class KuisController extends Controller
         $kuis = Kuis::create([
             'creator_id' => $request->user()->id,
             'judul' => $validated['judul'],
-            'mode' => $mode['mode'],
+            'mode' => $mode,
             'hp_awal' => $mode === 'game'
                 ? $hp_awal
                 : null,
