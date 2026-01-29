@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -20,10 +21,17 @@ return new class extends Migration
             ])->default('multiple_choice_single')->after('batas_waktu');
 
             $table->json('opsi')->nullable()->after('tipe_pertanyaan');
+        });
 
-            // ubah tipe jawaban_benar
-            $table->json('jawaban_benar')->change();
+        // ubah tipe jawaban_benar (PostgreSQL-safe)
+        DB::statement("
+            ALTER TABLE pertanyaans
+            ALTER COLUMN jawaban_benar
+            TYPE json
+            USING jawaban_benar::json
+        ");
 
+        Schema::table('pertanyaans', function (Blueprint $table) {
             // hapus kolom opsi lama
             $table->dropColumn([
                 'opsi_a',
@@ -44,15 +52,19 @@ return new class extends Migration
             $table->string('opsi_c')->after('opsi_b');
             $table->string('opsi_d')->after('opsi_c');
 
-            // kembalikan jawaban_benar ke enum
-            $table->enum('jawaban_benar', ['a', 'b', 'c', 'd'])->change();
-
             // hapus kolom baru
             $table->dropColumn([
                 'tipe_pertanyaan',
                 'opsi',
             ]);
-
         });
+
+        // kembalikan jawaban_benar ke enum (PostgreSQL-safe)
+        DB::statement("
+            ALTER TABLE pertanyaans
+            ALTER COLUMN jawaban_benar
+            TYPE varchar
+            USING jawaban_benar::text
+        ");
     }
 };

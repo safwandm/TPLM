@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { WebAPI } from "@/lib/api.web";
-import { webFetch } from "@/lib/webFetch";
+import webFetch from "@/lib/webFetch";
 import AppLayout from "@/Layouts/AppLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
 import ProtectedLayout from "../../Layouts/ProtectedLayout";

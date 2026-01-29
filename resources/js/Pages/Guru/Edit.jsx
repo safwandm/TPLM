@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaTrash, FaPlus } from "react-icons/fa";
 import { WebAPI } from "@/lib/api.web";
-import { webFetch } from "@/lib/webFetch";
+import webFetch from "@/lib/webFetch";
 
 export default function EditQuiz({ quizId }) {
     const editFormRef = useRef(null);

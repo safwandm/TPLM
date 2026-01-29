@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaPlay } from "react-icons/fa";
 import { WebAPI } from "@/lib/api.web";
-import { webFetch } from "@/lib/webFetch";
+import webFetch from "@/lib/webFetch";
 
 export default function GuruQuiz() {
     const id = Number(window.location.pathname.split("/")[2]);
