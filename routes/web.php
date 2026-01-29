@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ExportKuisController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 
@@ -118,6 +119,9 @@ Route::prefix('web/teacher')
         Route::post('/pertanyaan', [PertanyaanController::class, 'store']);
         Route::put('/pertanyaan/{id}', [PertanyaanController::class, 'update']);
         Route::delete('/pertanyaan/{id}', [PertanyaanController::class, 'destroy']);
+
+        Route::get('/export/sesi/{sesiId}/csv', [ExportKuisController::class, 'exportBySesi']);
+        Route::get('/export/sesi/{sesiId}/detail/csv', [ExportKuisController::class, 'exportSesiDetail']);
     });
 
 /*
