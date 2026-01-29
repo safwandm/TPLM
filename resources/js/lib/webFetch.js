@@ -1,13 +1,22 @@
-export async function webFetch(url, options = {}) {
+export default async function webFetch(url, options = {}) {
+    function getCsrfToken() {
+        return decodeURIComponent(
+            document.cookie
+                .split("; ")
+                .find(row => row.startsWith("XSRF-TOKEN="))
+                ?.split("=")[1] ?? ""
+        );
+    }
+
     const defaultOptions = {
         credentials: "include",
         headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
+            "X-XSRF-TOKEN": getCsrfToken(),
         },
     };
 
-    // Merge options safely
     const finalOptions = {
         ...defaultOptions,
         ...options,
@@ -19,10 +28,9 @@ export async function webFetch(url, options = {}) {
 
     const res = await fetch(url, finalOptions);
 
-    // Handle auth expiry
     if (res.status === 401 || res.status === 419) {
-        window.location.href = "/login";
         alert("Sesi Anda telah berakhir. Silakan login kembali.");
+        window.location.href = "/login";
     }
 
     return res;

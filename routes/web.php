@@ -17,6 +17,10 @@ use App\Http\Controllers\SesiPesertaController;
 | PUBLIC PAGES (INERTIA VIEWS)
 |--------------------------------------------------------------------------
 */
+Route::middleware(['auth', 'role:admin'])->get(
+    '/admin/users',
+    fn () => Inertia::render('Admin/AdminDashboard')
+);
 
 Route::middleware(['auth', 'role:teacher|admin'])->group(function ()  {
 
@@ -29,7 +33,8 @@ Route::get('/', fn () =>
 
 Route::get('/login', fn () =>
     Inertia::render('Auth/Login')
-);
+)->name('login');
+
 
 Route::middleware(['auth', 'role:admin'])->get(
     '/admin',

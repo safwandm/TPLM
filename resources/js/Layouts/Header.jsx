@@ -1,11 +1,8 @@
-import { webFetch } from "@/lib/webFetch";
-
+import webFetch from "@/lib/webFetch";
 
 export default function Header({ user }) {
     async function handleLogout() {
-
         try {
-
             function getCsrfToken() {
                 return decodeURIComponent(
                     document.cookie

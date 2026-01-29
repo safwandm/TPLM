@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { WebAPI } from "@/lib/api.web";
-import { webFetch } from "@/lib/webFetch";
+import webFetch from "@/lib/webFetch";
 
 export default function WaitingRoom({ id }) {
     const peserta = JSON.parse(localStorage.getItem("peserta"));
