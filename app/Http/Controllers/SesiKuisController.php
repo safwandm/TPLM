@@ -15,6 +15,9 @@ use App\Models\Pertanyaan;
 use App\Jobs\ActivateQuestion;
 use App\Models\JawabanPeserta;
 use App\Models\SesiPeserta;
+use Illuminate\Support\Facades\Log;
+
+use function Illuminate\Log\log;
 
 class SesiKuisController extends Controller
 {
@@ -189,19 +192,12 @@ class SesiKuisController extends Controller
             ], 422);
         }
 
-        // Validasi waktu
-        $endsAtRaw = Cache::get("sesi:{$session_id}:question_ends_at");
+        $startedAtRaw = Cache::get("sesi:{$session_id}:question_started_at");
 
-        $endsAt = Carbon::parse($endsAtRaw); // ✅ convert string → Carbon
+        $startedAt = Carbon::parse($startedAtRaw);
         $now = now();
 
-        if (!$endsAt || $now->greaterThan($endsAt)) {
-            return response()->json(['message' => 'Waktu menjawab sudah habis'], 422);
-        }
-
-        // Hitung waktu respon
-        $waktuJawabMs = max(0, $endsAt->diffInMilliseconds($now));
-        $waktuJawabMs = (int) $waktuJawabMs;
+        $waktuJawabMs = $startedAt->diffInMilliseconds($now);
 
         $question = Pertanyaan::find($currentQuestionId);
 

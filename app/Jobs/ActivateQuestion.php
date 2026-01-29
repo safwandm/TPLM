@@ -46,6 +46,7 @@ class ActivateQuestion implements ShouldQueue
         $endsAt = Carbon::now()->addSeconds($ttl);
 
         Cache::put("sesi:{$this->sessionId}:current_question", $this->questionId, $ttl + 5);
+        Cache::put("sesi:{$this->sessionId}:question_started_at", Carbon::now(), $ttl + 5);
         Cache::put("sesi:{$this->sessionId}:question_ends_at", $endsAt->toDateTimeString(), $ttl + 5);
 
         // Broadcast event ke frontend (jangan include jawaban benar)
