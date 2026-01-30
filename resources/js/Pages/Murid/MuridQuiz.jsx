@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { webFetch } from "@/lib/webFetch";
 import { WebAPI } from "@/lib/api.web";
+import Leaderboard from "../../Components/Leaderboard";
 
 export default function StudentQuiz() {
     const peserta = JSON.parse(localStorage.getItem("peserta"));
@@ -469,10 +470,10 @@ export default function StudentQuiz() {
                             </p>
 
                             <div className="mt-6 text-left">
-                                <h3 className="font-bold mb-2">
+                                {/* <h3 className="font-bold mb-2">
                                     Leaderboard
-                                </h3>
-                                <ul className="space-y-1">
+                                </h3> */}
+                                {/* <ul className="space-y-1">
                                     {leaderboard.map((p, i) => (
                                         <li
                                             key={i}
@@ -482,12 +483,14 @@ export default function StudentQuiz() {
                                                 {i + 1}. {p.nama}
                                             </span>
                                             <span>
+                                                {p.total_correctness}/{questionIndex}
                                                 {p.total_skor}
                                                 {quizConfig.mode === "game" && ` ❤️ ${p.hp_sisa}`}
                                             </span>
                                         </li>
                                     ))}
-                                </ul>
+                                </ul> */}
+                                <Leaderboard leaderboard={leaderboard} questionIndex={questionIndex} />
                             </div>
                         </>
                     )}
@@ -550,19 +553,22 @@ export default function StudentQuiz() {
 
             {quizConfig.tampilkan_peringkat && leaderboard.length > 0 && (
                 <div className="mt-8 w-full max-w-md bg-white rounded-xl p-4">
-                    <h3 className="font-bold mb-2">Leaderboard</h3>
+                    {/* <h3 className="font-bold mb-2">Leaderboard</h3>
                     <ul className="space-y-1">
                         {leaderboard.slice(0, 5).map((p, i) => (
                             <li className="flex justify-between text-sm">
                                 <span>{i + 1}. {p.nama}</span>
                                 <span>
+                                    {p.total_correctness}/{questionIndex}
                                     {p.total_skor}
                                     {isGameMode && ` ❤️ ${p.hp_sisa}`}
                                 </span>
                             </li>
                         ))}
-                    </ul>
+                    </ul> */}
+                    <Leaderboard leaderboard={leaderboard} questionIndex={questionIndex} />
                 </div>
+                
             )}
         </div>
     );

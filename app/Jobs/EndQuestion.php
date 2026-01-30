@@ -74,12 +74,7 @@ class EndQuestion implements ShouldQueue
             }
         });
 
-        $leaderboard = SesiPeserta::where('session_id', $this->sessionId)
-            ->orderByDesc('total_skor')
-            ->orderBy('nama')
-            ->get(['nama', 'total_skor', 'hp_sisa']);
-
-        broadcast(new UpdateLeaderboard($this->sessionId, $leaderboard));
+        broadcast(new UpdateLeaderboard($this->sessionId));
         
         // hapus cache current question (sudah berakhir)
         Cache::forget("sesi:{$this->sessionId}:current_question");

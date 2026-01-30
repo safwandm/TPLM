@@ -3,6 +3,7 @@ import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import { FaPlay } from "react-icons/fa";
 import { WebAPI } from "@/lib/api.web";
 import { webFetch } from "@/lib/webFetch";
+import Leaderboard from "../../Components/Leaderboard";
 
 export default function GuruQuiz() {
     const id = Number(window.location.pathname.split("/")[2]);
@@ -207,8 +208,9 @@ export default function GuruQuiz() {
                                     <p>⏳ Transisi antar soal</p>
                                 )}
                             </div>
-
-                            <Leaderboard leaderboard={leaderboard} />
+                            <div className="mt-6">
+                                <Leaderboard leaderboard={leaderboard} questionIndex={questionIndex}/>
+                            </div>
                         </>
                     )}
 
@@ -218,7 +220,9 @@ export default function GuruQuiz() {
                             <div className="text-center mt-6 font-semibold mb-4">
                                 ✅ Kuis Telah Selesai
                             </div>
-                            <Leaderboard leaderboard={leaderboard} />
+                            <div className="mt-6">
+                                <Leaderboard leaderboard={leaderboard} questionIndex={questionIndex} />
+                            </div>
                         </>
                     )}
                 </div>
@@ -226,47 +230,3 @@ export default function GuruQuiz() {
         </ProtectedLayout>
     );
 }
-
-/* ================= LEADERBOARD COMPONENT ================= */
-function Leaderboard({ leaderboard }) {
-    if (!leaderboard.length) {
-        return <p className="text-center text-gray-500">Belum ada skor</p>;
-    }
-
-    return (
-        <div className="mt-6">
-            <h3 className="font-semibold mb-2">Leaderboard</h3>
-            <ul className="border rounded p-3 space-y-1">
-                {leaderboard.map((l, i) => (
-                    <li
-                        key={l.id ?? i}
-                        className="flex justify-between items-center"
-                    >
-                        <span>
-                            {i + 1}. {l.nama}
-                        </span>
-
-                        <span className="flex gap-3 items-center">
-                            <span className="font-semibold">
-                                {l.total_skor}
-                            </span>
-
-                            {typeof l.hp_sisa === "number" && (
-                                <span
-                                    className={`text-sm font-bold ${
-                                        l.hp_sisa > 0
-                                            ? "text-red-600"
-                                            : "text-gray-400"
-                                    }`}
-                                >
-                                    ❤️ {l.hp_sisa}
-                                </span>
-                            )}
-                        </span>
-                    </li>
-                ))}
-            </ul>
-        </div>
-    );
-}
-

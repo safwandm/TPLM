@@ -130,12 +130,7 @@ class SesiKuisController extends Controller
             $questions->pluck('id')->toArray()
         )->delay(now()->addSeconds($startDelay));
 
-        $leaderboard = SesiPeserta::where('session_id', $session->id)
-            ->orderByDesc('total_skor')
-            ->orderBy('nama')
-            ->get(['nama', 'total_skor', 'hp_sisa']);
-
-        broadcast(new UpdateLeaderboard($session->id, $leaderboard));
+        broadcast(new UpdateLeaderboard($session->id));
 
         return response()->json(['message' => 'Sesi dimulai'], 200);
     }
@@ -260,15 +255,7 @@ class SesiKuisController extends Controller
             ]
         );
 
-        // if ($kuis->tampilkan_peringkat) {
-        # Hide di level UI saja untuk sekarang, soalnya guru juga dapat info leaderboard dari sini
-        $leaderboard = SesiPeserta::where('session_id', $session_id)
-            ->orderByDesc('total_skor')
-            ->orderBy('nama')
-            ->get(['nama', 'total_skor', 'hp_sisa']);
-        // }
-
-        broadcast(new UpdateLeaderboard($session_id, $leaderboard));
+        broadcast(new UpdateLeaderboard($session_id));
 
         return response()->json([
             'message' => 'Jawaban disimpan',
