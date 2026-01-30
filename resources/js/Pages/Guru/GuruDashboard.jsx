@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
-import { webFetch } from "@/lib/webFetch";
+import webFetch from "@/lib/webFetch";
 import {
     FaPlus,
     FaEdit,

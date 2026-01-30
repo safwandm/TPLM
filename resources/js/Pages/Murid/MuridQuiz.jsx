@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { webFetch } from "@/lib/webFetch";
+import webFetch from "@/lib/webFetch";
 import { WebAPI } from "@/lib/api.web";
 import Leaderboard from "../../Components/Leaderboard";
 
