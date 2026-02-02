@@ -116,6 +116,8 @@ class SesiPesertaController extends Controller
 
         return response()->json([
             'status' => 'running',
+
+            'current_question_number' => Cache::get("sesi:{$session_id}:current_question_number"),
             'current_question' => $question ? [
                 'pertanyaan_id' => $question->id,
                 'pertanyaan' => $question->pertanyaan,

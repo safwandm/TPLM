@@ -45,6 +45,10 @@ class ActivateQuestion implements ShouldQueue
         $ttl = $question->batas_waktu ?? 30; // detik (migration default 30)
         $endsAt = Carbon::now()->addSeconds($ttl);
 
+        $pos = array_search($this->questionId, $this->questionIds);
+        $questionNumber = $pos !== false ? $pos + 1 : null;
+
+        Cache::put("sesi:{$this->sessionId}:current_question_number", $questionNumber, $ttl + 5);
         Cache::put("sesi:{$this->sessionId}:current_question", $this->questionId, $ttl + 5);
         Cache::put("sesi:{$this->sessionId}:question_started_at", Carbon::now(), $ttl + 5);
         Cache::put("sesi:{$this->sessionId}:question_ends_at", $endsAt->toDateTimeString(), $ttl + 5);
@@ -64,6 +68,7 @@ class ActivateQuestion implements ShouldQueue
             'skor_bonus_waktu' => $question->skor_bonus_waktu,
             'batas_waktu' => $ttl,
             'ends_at' => $endsAt->toIso8601String(),
+            'question_number' => $questionNumber,
         ]));
 
         // Dispatch job untuk mengakhiri soal ini setelah $ttl detik

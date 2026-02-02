@@ -37,6 +37,7 @@ export const WebAPI = {
         start: (id) => `${API_BASE_URL}/web/sesi/${id}/start`,
         joinByCode: (code) => `${API_BASE_URL}/join/${code}`,
         getConfig: (id) => `/sesi/${id}/config`,
+        restore: (sesiId, pesertaId) => `/sesi/${sesiId}/restore/${pesertaId}`,
         submitAnswer: (sesiId, pertanyaanId) =>
             `${API_BASE_URL}/web/sesi/${sesiId}/pertanyaan/${pertanyaanId}/jawab`,
     },
