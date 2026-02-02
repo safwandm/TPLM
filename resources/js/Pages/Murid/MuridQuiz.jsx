@@ -134,6 +134,39 @@ export default function StudentQuiz() {
         }
     }, [timeLeft, status, quizConfig.mode]);
 
+    // restore session
+    useEffect(() => {
+        async function restore() {
+            const res = await webFetch(
+                WebAPI.session.restore(sessionId, peserta.id)
+            );
+            const data = await res.json();
+
+            if (data.status === "finished") {
+                setQuizFinished(true);
+                setFinalScore(data.final_score);
+                return;
+            }
+
+            setLeaderboard(data.leaderboard);
+            setHp(data.hp_sisa);
+
+            if (data.current_question) {
+                setCurrentQuestion(data.current_question);
+                setTimeLeft(data.time_left);
+
+                if (data.answered) {
+                    setSelectedAnswer(data.jawaban);
+                    setStatus("result");
+                } else {
+                    setStatus("idle");
+                }
+            }
+        }
+
+        restore();
+    }, []);
+
     /* ================= HELPERS ================= */
     function resetState() {
         setStatus("idle");

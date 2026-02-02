@@ -2,6 +2,7 @@
 
 namespace App\Events;
 
+use App\Models\SesiKuis;
 use App\Models\SesiPeserta;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
@@ -15,18 +16,7 @@ class UpdateLeaderboard implements ShouldBroadcast
     public function __construct($sessionId)
     {
         $this->sessionId = $sessionId;
-        $this->leaderboard = SesiPeserta::select(
-            'sesi_pesertas.nama',
-            'sesi_pesertas.total_skor',
-            'sesi_pesertas.hp_sisa',
-            DB::raw('COALESCE(SUM(jawaban_pesertas.correctness), 0) as total_correctness')
-        )
-        ->leftJoin('jawaban_pesertas', 'jawaban_pesertas.peserta_id', '=', 'sesi_pesertas.id')
-        ->where('sesi_pesertas.session_id', $this->sessionId)
-        ->groupBy('sesi_pesertas.id')
-        ->orderByDesc('total_skor')
-        ->orderBy('nama')
-        ->get();
+        $this->leaderboard = SesiKuis::getLeaderboard($sessionId);
     }
 
     public function broadcastOn()
