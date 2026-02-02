@@ -219,7 +219,8 @@ class SesiKuisController extends Controller
         $question = Pertanyaan::find($currentQuestionId);
 
         $correctness = $question->cekJawaban($request->jawaban);
-
+        $score = 0;
+        
         if ($correctness > 0) {
             $timeLimitMs = $question->batas_waktu * 1000;
 
@@ -252,6 +253,7 @@ class SesiKuisController extends Controller
                 'jawaban' => $request->jawaban,
                 'waktu_jawab_ms' => $waktuJawabMs,
                 'correctness' => $correctness,
+                'total_skor' => (int) round($score)
             ]
         );
 
