@@ -125,8 +125,8 @@ class KuisController extends Controller
                 'persamaan_matematika' => $p['persamaan_matematika'] ?? null,
                 'batas_waktu' => $p['batas_waktu'] ?? null,
 
-                'skor' => $p['skor'] ?? null,
-                'skor_bonus_waktu' => $p['skor_bonus_waktu'] ?? null,
+                'skor' => $p['skor'] ?? config('quiz.base_score'),
+                'skor_bonus_waktu' => $p['skor_bonus_waktu'] ?? config('quiz.time_bonus_score'),
             ]);
         }
 

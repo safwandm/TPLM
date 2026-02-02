@@ -41,8 +41,8 @@ class PertanyaanController extends Controller
             'persamaan_matematika' => $validated['persamaan_matematika'] ?? null,
             'batas_waktu' => $validated['batas_waktu'] ?? null,
 
-            'skor' => $validated['skor'] ?? null,
-            'skor_bonus_waktu' => $validated['skor_bonus_waktu'] ?? null,
+            'skor' => $validated['skor'] ?? config('quiz.base_score'),
+            'skor_bonus_waktu' => $validated['skor_bonus_waktu'] ?? config('quiz.time_bonus_score'),
         ]);
 
         return response()->json($pertanyaan, 201);
