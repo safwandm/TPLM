@@ -136,29 +136,43 @@ class SesiKuisController extends Controller
         return response()->json(['message' => 'Sesi dimulai'], 200);
     }
 
-    // Optional: endpoint untuk memaksa selesai (mis. saat emergency)
-    public function forceFinish(Request $request, $id)
+    public function abort(Request $request, $id)
     {
         $user = $request->user();
         $session = SesiKuis::findOrFail($id);
 
-        // cek permission (sama seperti di start)
+        // cek permission (sama seperti start)
         if ($user->id !== $session->kuis->creator_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        // kalau sudah selesai, jangan ulang-ulang
+        if ($session->status === 'finished') {
+            return response()->json([
+                'message' => 'Sesi sudah selesai'
+            ], 200);
+        }
+
+        // update status sesi
         $session->status = 'finished';
         $session->berakhir_pada = Carbon::now();
         $session->save();
 
-        // clear cache keys
+        // bersihkan SEMUA cache terkait soal aktif
+        Cache::forget("sesi:{$session->id}:current_question_number");
         Cache::forget("sesi:{$session->id}:current_question");
+        Cache::forget("sesi:{$session->id}:question_started_at");
         Cache::forget("sesi:{$session->id}:question_ends_at");
 
-        // broadcast jika ingin memberitahu frontend (bisa lakukan event SessionFinished)
-        event(new \App\Events\SessionFinished($session));
+        // update leaderboard terakhir (optional tapi recommended)
+        broadcast(new UpdateLeaderboard($session->id));
 
-        return response()->json(['message' => 'Sesi dipaksa selesai'], 200);
+        // broadcast ke frontend bahwa sesi selesai
+        broadcast(new SessionFinished($session));
+
+        return response()->json([
+            'message' => 'Sesi berhasil dipaksa selesai'
+        ], 200);
     }
 
     public function submit(Request $request, $session_id, $question_id)
@@ -268,32 +282,4 @@ class SesiKuisController extends Controller
             'hp_sisa' => $peserta->hp_sisa
         ]);
     }
-
-    public function abort($id)
-    {
-        $session = SesiKuis::findOrFail($id);
-
-        if ($session->status !== 'running') {
-            return response()->json([
-                'message' => 'Sesi sudah tidak berjalan'
-            ], 422);
-        }
-
-        $session->status = 'finished';
-        $session->berakhir_pada = now();
-        $session->save();
-
-        // Bersihkan cache soal aktif
-        Cache::forget("sesi:{$id}:current_question");
-        Cache::forget("sesi:{$id}:question_started_at");
-        Cache::forget("sesi:{$id}:question_ends_at");
-
-        // Broadcast ke semua client
-        broadcast(new SessionFinished($session));
-
-        return response()->json([
-            'message' => 'Sesi berhasil dihentikan'
-        ]);
-    }
-
 }
