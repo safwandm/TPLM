@@ -87,8 +87,10 @@ class EndQuestion implements ShouldQueue
         broadcast(new QuestionEnded(
             $session->id,
             $question->id,
-            $breakTime
+            $breakTime,
+            $session->kuis->tampilkan_jawaban_benar ? $question->jawaban_benar : null
         ));
+        
 
         // cari index soal saat ini dan tentukan next
         $ids = $this->questionIds;

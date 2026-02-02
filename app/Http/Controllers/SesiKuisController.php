@@ -263,7 +263,7 @@ class SesiKuisController extends Controller
         return response()->json([
             'message' => 'Jawaban disimpan',
             'jawaban' => $jawaban,
-            'jawaban_benar' => $kuis->tampilkan_jawaban_benar ? $question->jawaban_benar : null,
+            // 'jawaban_benar' => $kuis->tampilkan_jawaban_benar ? $question->jawaban_benar : null,
             'correctness' => $correctness,
             'hp_sisa' => $peserta->hp_sisa
         ]);
