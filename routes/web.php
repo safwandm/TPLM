@@ -142,7 +142,7 @@ Route::prefix('web/sesi')
         Route::post('/', [SesiKuisController::class, 'create']);
         Route::post('/{id}/start', [SesiKuisController::class, 'start']);
         Route::get('/{id}', [SesiKuisController::class, 'detail_sesi']);
-        Route::get('/{id}/abort', [SesiKuisController::class, 'abort']);
+        Route::post('/{id}/abort', [SesiKuisController::class, 'abort']);
     });
 
 /*
