@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\QuizStarting;
+use App\Events\SessionFinished;
 use App\Events\UpdateLeaderboard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -267,4 +268,32 @@ class SesiKuisController extends Controller
             'hp_sisa' => $peserta->hp_sisa
         ]);
     }
+
+    public function abort($id)
+    {
+        $session = SesiKuis::findOrFail($id);
+
+        if ($session->status !== 'running') {
+            return response()->json([
+                'message' => 'Sesi sudah tidak berjalan'
+            ], 422);
+        }
+
+        $session->status = 'finished';
+        $session->berakhir_pada = now();
+        $session->save();
+
+        // Bersihkan cache soal aktif
+        Cache::forget("sesi:{$id}:current_question");
+        Cache::forget("sesi:{$id}:question_started_at");
+        Cache::forget("sesi:{$id}:question_ends_at");
+
+        // Broadcast ke semua client
+        broadcast(new SessionFinished($session));
+
+        return response()->json([
+            'message' => 'Sesi berhasil dihentikan'
+        ]);
+    }
+
 }
