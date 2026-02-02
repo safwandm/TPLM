@@ -150,10 +150,11 @@ export default function StudentQuiz() {
 
             setLeaderboard(data.leaderboard);
             setHp(data.hp_sisa);
+            setQuestionIndex(data.current_question_number);
 
             if (data.current_question) {
                 setCurrentQuestion(data.current_question);
-                setTimeLeft(data.time_left);
+                setTimeLeft(Math.floor(data.time_left));
 
                 if (data.answered) {
                     setSelectedAnswer(data.jawaban);
