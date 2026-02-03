@@ -3,106 +3,196 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use App\Models\Kuis;
 use App\Models\Pertanyaan;
 
-class PertanyaanController extends Controller
+class KuisController extends Controller
 {
+    /* ================= LIST KUIS ================= */
+    public function index(Request $request)
+    {
+        $kuis = Kuis::where('creator_id', $request->user()->id)
+            ->withCount('pertanyaan')
+            ->with('kuisAktif')
+            ->get();
 
+        return response()->json($kuis);
+    }
+
+    /* ================= DETAIL ================= */
+    public function show(Request $request, $id)
+    {
+        $kuis = Kuis::with('pertanyaan')
+            ->where('id', $id)
+            ->where('creator_id', $request->user()->id)
+            ->firstOrFail();
+
+        return response()->json($kuis);
+    }
+
+    /* ================= CREATE KUIS ONLY ================= */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'kuis_id' => 'required|exists:kuis,id',
+            'judul' => 'required|string',
+            'total_waktu' => 'nullable|integer',
+            'tampilkan_jawaban_benar' => 'boolean',
+            'tampilkan_peringkat' => 'boolean',
+            'teks_waiting_room' => 'nullable|string',
+            'teks_penutup' => 'nullable|string',
 
-            'tipe_pertanyaan' => 'required|string',
-            'pertanyaan' => 'required|string',
-            'opsi' => 'nullable',
-            'jawaban_benar' => 'required',
-
-            'url_gambar' => 'nullable|string',
-            'persamaan_matematika' => 'nullable|string',
-            'batas_waktu' => 'nullable|integer',
-
-            'skor' => 'nullable|integer|min:1',
-            'skor_bonus_waktu' => 'nullable|integer|min:1',
+            'mode' => 'nullable|in:classic,game',
+            'hp_awal' => 'nullable|integer|min:1',
         ]);
 
-        $urutan = (Pertanyaan::where('kuis_id', $validated['kuis_id'])->max('urutan') ?? 0) + 1;
+        $mode = $validated['mode'] ?? 'classic';
 
-        $pertanyaan = Pertanyaan::createValidated([
-            'kuis_id' => $validated['kuis_id'],
-            'urutan' => $urutan,
+        if ($mode === 'game') {
+            $hp_awal = $validated['hp_awal'] ?? config('quiz.starting_hp', 3);
+        } else {
+            $hp_awal = null;
+        }
 
-            'tipe_pertanyaan' => $validated['tipe_pertanyaan'],
-            'pertanyaan' => $validated['pertanyaan'],
-            'opsi' => $validated['opsi'],
-            'jawaban_benar' => $validated['jawaban_benar'],
+        $kuis = Kuis::create([
+            'creator_id' => $request->user()->id,
+            'judul' => $validated['judul'],
+            'mode' => $mode,
+            'hp_awal' => $hp_awal,
+            'total_waktu' => $validated['total_waktu'] ?? null,
+            'tampilkan_jawaban_benar' => $validated['tampilkan_jawaban_benar'] ?? false,
+            'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false,
+            'teks_waiting_room' => $validated['teks_waiting_room'] ?? null,
+            'teks_penutup' => $validated['teks_penutup'] ?? null,
+        ]);
 
-            'url_gambar' => $validated['url_gambar'] ?? null,
-            'persamaan_matematika' => $validated['persamaan_matematika'] ?? null,
-            'batas_waktu' => $validated['batas_waktu'] ?? null,
+        return response()->json($kuis, 201);
+    }
 
+    /* ================= CREATE KUIS + QUESTIONS ================= */
+    public function storeWithQuestions(Request $request)
+    {
+        $validated = $request->validate([
+            'judul' => 'required|string',
+            'total_waktu' => 'nullable|integer',
+            'tampilkan_jawaban_benar' => 'boolean',
+            'tampilkan_peringkat' => 'boolean',
+            'teks_waiting_room' => 'nullable|string',
+            'teks_penutup' => 'nullable|string',
+
+            'mode' => 'nullable|in:classic,game',
+            'hp_awal' => 'nullable|integer|min:1',
+
+            'pertanyaan' => 'required|array',
+
+            'pertanyaan.*.tipe_pertanyaan' => 'required|string',
+            'pertanyaan.*.pertanyaan' => 'required|string',
+            'pertanyaan.*.opsi' => 'nullable',
+            'pertanyaan.*.jawaban_benar' => 'required',
+
+            'pertanyaan.*.url_gambar' => 'nullable|string',
+            'pertanyaan.*.url_video' => 'nullable|string',
+            'pertanyaan.*.url_audio' => 'nullable|string',
+            'pertanyaan.*.persamaan_matematika' => 'nullable|string',
+            'pertanyaan.*.batas_waktu' => 'nullable|integer',
+
+            'pertanyaan.*.skor' => 'nullable|integer|min:1',
+            'pertanyaan.*.skor_bonus_waktu' => 'nullable|integer|min:1',
+        ]);
+
+        /* ================= MODE HANDLING ================= */
+        $mode = $validated['mode'] ?? 'classic';
+
+        if ($mode === 'game') {
+            $hp_awal = $validated['hp_awal'] ?? config('quiz.starting_hp', 3);
+        } else {
+            $hp_awal = null;
+        }
+
+        $kuis = Kuis::create([
+            'creator_id' => $request->user()->id,
+            'judul' => $validated['judul'],
+
+            // mode quiz
+            'mode' => $mode,
+            'hp_awal' => $mode === 'game'
+                ? ($validated['hp_awal'] ?? config('quiz.starting_hp'))
+                : null,
+
+            // waktu & tampilan
+            'total_waktu' => $validated['total_waktu'] ?? null,
+            'tampilkan_jawaban_benar' => $validated['tampilkan_jawaban_benar'] ?? false,
+            'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false,
+
+            // teks opsional
+            'teks_waiting_room' => $validated['teks_waiting_room'] ?? null,
+            'teks_penutup' => $validated['teks_penutup'] ?? null,
+
+            // skor (dari main)
             'skor' => $validated['skor'] ?? config('quiz.base_score'),
             'skor_bonus_waktu' => $validated['skor_bonus_waktu'] ?? config('quiz.time_bonus_score'),
         ]);
 
-        return response()->json($pertanyaan, 201);
+
+        /* ================= CREATE QUESTIONS ================= */
+        foreach ($validated['pertanyaan'] as $index => $p) {
+            Pertanyaan::createValidated([
+                'kuis_id' => $kuis->id,
+                'urutan' => $index + 1,
+
+                'tipe_pertanyaan' => $p['tipe_pertanyaan'],
+                'pertanyaan' => $p['pertanyaan'],
+                'opsi' => $p['opsi'] ?? null,
+                'jawaban_benar' => $p['jawaban_benar'],
+
+                'url_gambar' => $p['url_gambar'] ?? null,
+                'url_video' => $p['url_video'] ?? null,
+                'url_audio' => $p['url_audio'] ?? null,
+                'persamaan_matematika' => $p['persamaan_matematika'] ?? null,
+                'batas_waktu' => $p['batas_waktu'] ?? null,
+
+                'skor' => $p['skor'] ?? null,
+                'skor_bonus_waktu' => $p['skor_bonus_waktu'] ?? null,
+            ]);
+        }
+
+        return response()->json([
+            'message' => 'Kuis dan pertanyaan berhasil dibuat',
+            'kuis' => $kuis->load('pertanyaan'),
+        ], 201);
     }
 
+    /* ================= UPDATE ================= */
     public function update(Request $request, $id)
     {
-        $pertanyaan = Pertanyaan::findOrFail($id);
+        $kuis = Kuis::findOrFail($id);
 
         $validated = $request->validate([
-            'tipe_pertanyaan' => 'sometimes|string',
-            'pertanyaan' => 'sometimes|string',
-            'opsi' => 'nullable',
-            'jawaban_benar' => 'sometimes',
+            'judul' => 'sometimes|string',
+            'total_waktu' => 'nullable|integer',
+            'tampilkan_jawaban_benar' => 'boolean',
+            'tampilkan_peringkat' => 'boolean',
+            'teks_waiting_room' => 'nullable|string',
+            'teks_penutup' => 'nullable|string',
 
-            'url_gambar' => 'nullable|string',
-            'url_video' => 'nullable|string',
-            'url_audio' => 'nullable|string',
-            'persamaan_matematika' => 'nullable|string',
-            'batas_waktu' => 'nullable|integer',
-            'urutan' => 'nullable|integer',
-
-            'skor' => 'nullable|integer|min:1',
-            'skor_bonus_waktu' => 'nullable|integer|min:1',
+            'mode' => 'nullable|in:classic,game',
+            'hp_awal' => 'nullable|integer|min:1',
         ]);
 
-        if (isset($validated['urutan']) && $validated['urutan'] !== $pertanyaan->urutan) {
-            $other = Pertanyaan::where('kuis_id', $pertanyaan->kuis_id)
-                ->where('urutan', $validated['urutan'])
-                ->first();
-
-            if ($other) {
-                $other->update(['urutan' => $pertanyaan->urutan]);
-            }
+        if (($validated['mode'] ?? $kuis->mode) === 'classic') {
+            $validated['hp_awal'] = null;
         }
 
-        $pertanyaan->updateValidated($validated);
+        $kuis->update($validated);
 
-        return response()->json($pertanyaan);
+        return response()->json($kuis);
     }
 
+    /* ================= DELETE ================= */
     public function destroy($id)
     {
-        $pertanyaan = Pertanyaan::findOrFail($id);
-        $kuisId = $pertanyaan->kuis_id;
+        $kuis = Kuis::findOrFail($id);
+        $kuis->delete();
 
-        $pertanyaan->delete();
-
-        $pertanyaans = Pertanyaan::where('kuis_id', $kuisId)
-            ->orderBy('urutan')
-            ->get();
-
-        $urut = 1;
-        foreach ($pertanyaans as $p) {
-            if ($p->urutan != $urut) {
-                $p->update(['urutan' => $urut]);
-            }
-            $urut++;
-        }
-
-        return response()->json(['message' => 'Pertanyaan dihapus & urutan diperbarui']);
+        return response()->json(['message' => 'Kuis dihapus']);
     }
 }

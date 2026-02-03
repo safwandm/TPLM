@@ -1,22 +1,33 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
-return new class extends Migration
-{
-    public function up()
+return new class extends Migration {
+    public function up(): void
     {
-        Schema::table('jawaban_pesertas', function (Blueprint $table) {
-            $table->json('jawaban')->nullable()->change();
-        });
+        DB::statement("
+            ALTER TABLE jawaban_pesertas
+            ALTER COLUMN jawaban TYPE json
+            USING jawaban::json
+        ");
+
+        DB::statement("
+            ALTER TABLE jawaban_pesertas
+            ALTER COLUMN jawaban DROP NOT NULL
+        ");
+
+        DB::statement("
+            ALTER TABLE jawaban_pesertas
+            ALTER COLUMN jawaban DROP DEFAULT
+        ");
     }
 
-    public function down()
+    public function down(): void
     {
-        Schema::table('jawaban_pesertas', function (Blueprint $table) {
-             $table->enum('jawaban', ['a','b','c','d'])->nullable()->change();
-        });
+        DB::statement("
+            ALTER TABLE jawaban_pesertas
+            ALTER COLUMN jawaban TYPE text
+        ");
     }
 };
