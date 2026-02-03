@@ -142,6 +142,7 @@ Route::prefix('web/sesi')
         Route::post('/', [SesiKuisController::class, 'create']);
         Route::post('/{id}/start', [SesiKuisController::class, 'start']);
         Route::get('/{id}', [SesiKuisController::class, 'detail_sesi']);
+        Route::post('/{id}/abort', [SesiKuisController::class, 'abort']);
     });
 
 /*
@@ -159,3 +160,4 @@ Route::post(
 Route::get('/sesi/{id}/config', [SesiKuisController::class, 'config']);
 Route::post('/join/{kode}', [SesiPesertaController::class, 'join']);
 Route::get('/sesi/peserta/{peserta_id}', [SesiPesertaController::class, 'get']);
+Route::get('/sesi/{session_id}/restore/{peserta_id}', [SesiPesertaController::class, 'restore']);

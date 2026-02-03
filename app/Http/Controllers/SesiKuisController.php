@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\QuizStarting;
+use App\Events\SessionFinished;
 use App\Events\UpdateLeaderboard;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -135,29 +136,43 @@ class SesiKuisController extends Controller
         return response()->json(['message' => 'Sesi dimulai'], 200);
     }
 
-    // Optional: endpoint untuk memaksa selesai (mis. saat emergency)
-    public function forceFinish(Request $request, $id)
+    public function abort(Request $request, $id)
     {
         $user = $request->user();
         $session = SesiKuis::findOrFail($id);
 
-        // cek permission (sama seperti di start)
+        // cek permission (sama seperti start)
         if ($user->id !== $session->kuis->creator_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
+        // kalau sudah selesai, jangan ulang-ulang
+        if ($session->status === 'finished') {
+            return response()->json([
+                'message' => 'Sesi sudah selesai'
+            ], 200);
+        }
+
+        // update status sesi
         $session->status = 'finished';
         $session->berakhir_pada = Carbon::now();
         $session->save();
 
-        // clear cache keys
+        // bersihkan SEMUA cache terkait soal aktif
+        Cache::forget("sesi:{$session->id}:current_question_number");
         Cache::forget("sesi:{$session->id}:current_question");
+        Cache::forget("sesi:{$session->id}:question_started_at");
         Cache::forget("sesi:{$session->id}:question_ends_at");
 
-        // broadcast jika ingin memberitahu frontend (bisa lakukan event SessionFinished)
-        event(new \App\Events\SessionFinished($session));
+        // update leaderboard terakhir (optional tapi recommended)
+        broadcast(new UpdateLeaderboard($session->id));
 
-        return response()->json(['message' => 'Sesi dipaksa selesai'], 200);
+        // broadcast ke frontend bahwa sesi selesai
+        broadcast(new SessionFinished($session));
+
+        return response()->json([
+            'message' => 'Sesi berhasil dipaksa selesai'
+        ], 200);
     }
 
     public function submit(Request $request, $session_id, $question_id)
@@ -219,7 +234,8 @@ class SesiKuisController extends Controller
         $question = Pertanyaan::find($currentQuestionId);
 
         $correctness = $question->cekJawaban($request->jawaban);
-
+        $score = 0;
+        
         if ($correctness > 0) {
             $timeLimitMs = $question->batas_waktu * 1000;
 
@@ -252,6 +268,7 @@ class SesiKuisController extends Controller
                 'jawaban' => $request->jawaban,
                 'waktu_jawab_ms' => $waktuJawabMs,
                 'correctness' => $correctness,
+                'total_skor' => (int) round($score)
             ]
         );
 
@@ -260,7 +277,7 @@ class SesiKuisController extends Controller
         return response()->json([
             'message' => 'Jawaban disimpan',
             'jawaban' => $jawaban,
-            'jawaban_benar' => $kuis->tampilkan_jawaban_benar ? $question->jawaban_benar : null,
+            // 'jawaban_benar' => $kuis->tampilkan_jawaban_benar ? $question->jawaban_benar : null,
             'correctness' => $correctness,
             'hp_sisa' => $peserta->hp_sisa
         ]);

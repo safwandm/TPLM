@@ -119,6 +119,8 @@ class TestSeeder extends Seeder
                 'opsi' => $q['opsi'],
                 'jawaban_benar' => $q['jawaban_benar'],
                 'batas_waktu' => $q['batas_waktu'] ?? null,
+                'skor' => 5,
+                'skor_bonus_waktu' => 5
             ]);
         }
 
@@ -140,6 +142,8 @@ class TestSeeder extends Seeder
                 'opsi' => $q['opsi'],
                 'jawaban_benar' => $q['jawaban_benar'],
                 'batas_waktu' => $q['batas_waktu'] ?? null,
+                'skor' => 5,
+                'skor_bonus_waktu' => 5
             ]);
         }
         

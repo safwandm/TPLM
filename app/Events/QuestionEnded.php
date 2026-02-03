@@ -13,12 +13,14 @@ class QuestionEnded implements ShouldBroadcast
     public int $sessionId;
     public int $questionId;
     public int $breakTime;
+    public $jawabanBenar;
 
-    public function __construct(int $sessionId, int $questionId, int $breakTime)
+    public function __construct(int $sessionId, int $questionId, int $breakTime, $jawabanBenar)
     {
         $this->sessionId = $sessionId;
         $this->questionId = $questionId;
         $this->breakTime = $breakTime;
+        $this->jawabanBenar = $jawabanBenar;
     }
 
     public function broadcastOn()
@@ -32,6 +34,7 @@ class QuestionEnded implements ShouldBroadcast
             'session_id' => $this->sessionId,
             'pertanyaan_id' => $this->questionId,
             'break_time' => $this->breakTime, 
+            'jawaban_benar' => $this->jawabanBenar
         ];
     }
 

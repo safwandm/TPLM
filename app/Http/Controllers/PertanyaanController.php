@@ -108,18 +108,30 @@ class KuisController extends Controller
             $hp_awal = null;
         }
 
-        /* ================= CREATE KUIS ================= */
         $kuis = Kuis::create([
             'creator_id' => $request->user()->id,
             'judul' => $validated['judul'],
+
+            // mode quiz
             'mode' => $mode,
-            'hp_awal' => $hp_awal,
+            'hp_awal' => $mode === 'game'
+                ? ($validated['hp_awal'] ?? config('quiz.starting_hp'))
+                : null,
+
+            // waktu & tampilan
             'total_waktu' => $validated['total_waktu'] ?? null,
             'tampilkan_jawaban_benar' => $validated['tampilkan_jawaban_benar'] ?? false,
             'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false,
+
+            // teks opsional
             'teks_waiting_room' => $validated['teks_waiting_room'] ?? null,
             'teks_penutup' => $validated['teks_penutup'] ?? null,
+
+            // skor (dari main)
+            'skor' => $validated['skor'] ?? config('quiz.base_score'),
+            'skor_bonus_waktu' => $validated['skor_bonus_waktu'] ?? config('quiz.time_bonus_score'),
         ]);
+
 
         /* ================= CREATE QUESTIONS ================= */
         foreach ($validated['pertanyaan'] as $index => $p) {

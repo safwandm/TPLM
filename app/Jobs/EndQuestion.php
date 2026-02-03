@@ -77,6 +77,7 @@ class EndQuestion implements ShouldQueue
         broadcast(new UpdateLeaderboard($this->sessionId));
         
         // hapus cache current question (sudah berakhir)
+        Cache::forget("sesi:{$this->sessionId}:current_question_number");
         Cache::forget("sesi:{$this->sessionId}:current_question");
         Cache::forget("sesi:{$this->sessionId}:question_ends_at");
 
@@ -86,8 +87,10 @@ class EndQuestion implements ShouldQueue
         broadcast(new QuestionEnded(
             $session->id,
             $question->id,
-            $breakTime
+            $breakTime,
+            $session->kuis->tampilkan_jawaban_benar ? $question->jawaban_benar : null
         ));
+        
 
         // cari index soal saat ini dan tentukan next
         $ids = $this->questionIds;

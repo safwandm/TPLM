@@ -23,13 +23,22 @@ return new class extends Migration
             $table->json('opsi')->nullable()->after('tipe_pertanyaan');
         });
 
-        // ubah tipe jawaban_benar (PostgreSQL-safe)
-        DB::statement("
-            ALTER TABLE pertanyaans
-            ALTER COLUMN jawaban_benar
-            TYPE json
-            USING jawaban_benar::json
-        ");
+        $driver = DB::getDriverName();
+
+        if ($driver === 'pgsql') {
+            DB::statement("
+                ALTER TABLE pertanyaans
+                ALTER COLUMN jawaban_benar
+                TYPE json
+                USING jawaban_benar::json
+            ");
+        }
+
+        if ($driver === 'sqlite') {
+            Schema::table('pertanyaans', function (Blueprint $table) {
+                $table->json('jawaban_benar')->change();
+            });
+        }
 
         Schema::table('pertanyaans', function (Blueprint $table) {
             // hapus kolom opsi lama
@@ -58,13 +67,20 @@ return new class extends Migration
                 'opsi',
             ]);
         });
+        $driver = DB::getDriverName();
 
-        // kembalikan jawaban_benar ke enum (PostgreSQL-safe)
-        DB::statement("
-            ALTER TABLE pertanyaans
-            ALTER COLUMN jawaban_benar
-            TYPE varchar
-            USING jawaban_benar::text
-        ");
+        if ($driver === 'pgsql') {
+            DB::statement("
+                ALTER TABLE pertanyaans
+                ALTER COLUMN jawaban_benar
+                TYPE text
+            ");
+        }
+
+        if ($driver === 'sqlite') {
+            Schema::table('pertanyaans', function (Blueprint $table) {
+                $table->text('jawaban_benar')->change();
+            });
+        }
     }
 };
