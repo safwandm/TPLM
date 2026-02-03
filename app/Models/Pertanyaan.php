@@ -108,6 +108,8 @@ use Illuminate\Validation\ValidationException;
  */
 class Pertanyaan extends Model
 {
+    protected $table = 'pertanyaans';
+
     protected $fillable = [
         'kuis_id',
         'urutan',
@@ -121,7 +123,7 @@ class Pertanyaan extends Model
         'opsi',
         'jawaban_benar',
         'skor',
-        'skor_bonus_waktu'
+        'skor_bonus_waktu',
     ];
 
     protected $casts = [
@@ -129,11 +131,17 @@ class Pertanyaan extends Model
         'jawaban_benar' => 'array',
     ];
 
+    /* ======================================================
+       RELATION
+    ====================================================== */
     public function kuis()
     {
         return $this->belongsTo(Kuis::class);
     }
 
+    /* ======================================================
+       SCORING
+    ====================================================== */
     public function cekJawaban($jawabanMurid): float
     {
         return match ($this->tipe_pertanyaan) {
@@ -148,231 +156,182 @@ class Pertanyaan extends Model
 
     protected function cekMCSingle(int $jawabanMurid): float
     {
-        return $jawabanMurid === $this->jawaban_benar[0] ? 1.0 : 0.0;
+        return $jawabanMurid === ($this->jawaban_benar[0] ?? null) ? 1.0 : 0.0;
     }
 
     protected function cekMCMulti(array $jawabanMurid): float
     {
-        $jawabanBenar = $this->jawaban_benar;
+        $jawabanBenar = $this->jawaban_benar ?? [];
 
-        // hilangkan duplikat & normalisasi
         $jawabanMurid = array_values(array_unique($jawabanMurid));
 
         // ada jawaban salah → 0
-        foreach ($jawabanMurid as $jawaban) {
-            if (!in_array($jawaban, $jawabanBenar, true)) {
+        foreach ($jawabanMurid as $j) {
+            if (!in_array($j, $jawabanBenar, true)) {
                 return 0;
             }
         }
 
-        $jumlahBenar = count(array_intersect($jawabanMurid, $jawabanBenar));
-        $totalBenar  = count($jawabanBenar);
+        if (count($jawabanBenar) === 0) return 0;
 
-        if ($totalBenar === 0) {
-            return 0;
-        }
-
-        // skor proporsional (0–1)
-        return round($jumlahBenar / $totalBenar, 2);
+        return round(
+            count(array_intersect($jawabanMurid, $jawabanBenar)) / count($jawabanBenar),
+            2
+        );
     }
 
     protected function cekTrueFalse(bool $jawabanMurid): float
     {
-        return $jawabanMurid === $this->jawaban_benar[0] ? 1.0 : 0.0;
+        return $jawabanMurid === ($this->jawaban_benar[0] ?? false) ? 1.0 : 0.0;
     }
 
     protected function cekOrdering(array $jawabanMurid): float
     {
-        $jawabanBenar = $this->jawaban_benar;
+        $benar = $this->jawaban_benar ?? [];
+        if (count($benar) === 0) return 0;
 
-        $total = count($jawabanBenar);
-        if ($total === 0) {
-            return 0.0;
-        }
-
-        $benar = 0;
-
-        foreach ($jawabanBenar as $index => $nilaiBenar) {
-            if (
-                array_key_exists($index, $jawabanMurid) &&
-                $jawabanMurid[$index] === $nilaiBenar
-            ) {
-                $benar++;
+        $match = 0;
+        foreach ($benar as $i => $v) {
+            if (isset($jawabanMurid[$i]) && $jawabanMurid[$i] === $v) {
+                $match++;
             }
         }
 
-        return round($benar / $total, 2);
+        return round($match / count($benar), 2);
     }
 
     protected function cekMatching(array $jawabanMurid): float
     {
-        $jawabanBenar = $this->jawaban_benar;
+        $benar = $this->jawaban_benar ?? [];
+        if (count($benar) === 0) return 0;
 
-        $total = count($jawabanBenar);
-        if ($total === 0) {
-            return 0.0;
-        }
-
-        $benar = 0;
-
-        foreach ($jawabanBenar as $kiri => $kananBenar) {
+        $match = 0;
+        foreach ($benar as $kiri => $kanan) {
             if (
                 array_key_exists($kiri, $jawabanMurid) &&
-                $jawabanMurid[$kiri] === $kananBenar
+                $jawabanMurid[$kiri] === $kanan
             ) {
-                $benar++;
+                $match++;
             }
         }
 
-        return round($benar / $total, 2);
+        return round($match / count($benar), 2);
     }
 
-    
+    /* ======================================================
+       CREATE / UPDATE WITH VALIDATION
+    ====================================================== */
     public static function createValidated(array $data): self
     {
-        self::validateAndNormalize($data);
-        return self::create($data);
+        self::validatePayload($data);
+        return self::create(self::normalizeForStorage($data));
     }
 
     public function updateValidated(array $data): bool
     {
-        $merged = array_merge($this->toArray(), $data);
-        self::validateAndNormalize($merged);
-        return $this->update($data);
+        self::validatePayload($data);
+        return $this->update(self::normalizeForStorage($data));
     }
 
-    protected static function validateAndNormalize(array &$data): void
+    /* ======================================================
+       VALIDATION
+    ====================================================== */
+    protected static function validatePayload(array $data): void
     {
-        foreach (['tipe_pertanyaan', 'opsi', 'jawaban_benar'] as $key) {
-            if (!array_key_exists($key, $data)) {
-                throw ValidationException::withMessages([
-                    $key => 'Field wajib ada.',
-                ]);
-            }
+        if (!isset($data['tipe_pertanyaan'])) {
+            throw ValidationException::withMessages([
+                'tipe_pertanyaan' => 'Tipe pertanyaan wajib.',
+            ]);
         }
 
         match ($data['tipe_pertanyaan']) {
-
-            'multiple_choice_single' => self::mcSingle($data),
-            'multiple_choice_multi'  => self::mcMulti($data),
-            'true_false'             => self::trueFalse($data),
-            'ordering'               => self::ordering($data),
-            'matching'               => self::matching($data),
-
+            'multiple_choice_single' => self::validateMCSingle($data),
+            'multiple_choice_multi'  => self::validateMCMulti($data),
+            'true_false'             => self::validateTrueFalse($data),
+            'ordering'               => self::validateOrdering($data),
+            'matching'               => self::validateMatching($data),
             default => throw ValidationException::withMessages([
                 'tipe_pertanyaan' => 'Tipe pertanyaan tidak valid.',
             ]),
         };
     }
 
-    protected static function mcSingle(array &$data): void
-    {
-        self::assertArray($data['opsi'], min: 2);
-        self::assertInt($data['jawaban_benar']);
+    /* ================= VALIDATORS ================= */
 
-        if ($data['jawaban_benar'] < 0 || $data['jawaban_benar'] >= count($data['opsi'])) {
+    protected static function validateMCSingle(array $data): void
+    {
+        if (!is_array($data['opsi']) || count($data['opsi']) < 2) {
             throw ValidationException::withMessages([
-                'jawaban_benar' => 'Index jawaban di luar range.',
+                'opsi' => 'Minimal 2 opsi.',
             ]);
         }
 
-        $data['opsi'] = array_values($data['opsi']);
-        $data['jawaban_benar'] = [(int) $data['jawaban_benar']];
+        if (!is_int($data['jawaban_benar'])) {
+            throw ValidationException::withMessages([
+                'jawaban_benar' => 'Jawaban harus index integer.',
+            ]);
+        }
     }
 
-    protected static function mcMulti(array &$data): void
+    protected static function validateMCMulti(array $data): void
     {
-        self::assertArray($data['opsi'], min: 2);
-        self::assertArray($data['jawaban_benar'], min: 1);
-
-        $opsiCount = count($data['opsi']);
-        $unique = array_unique($data['jawaban_benar']);
-
-        if (count($unique) !== count($data['jawaban_benar'])) {
+        if (!is_array($data['opsi']) || count($data['opsi']) < 2) {
             throw ValidationException::withMessages([
-                'jawaban_benar' => 'Jawaban duplikat tidak diperbolehkan.',
+                'opsi' => 'Minimal 2 opsi.',
             ]);
         }
-
-        foreach ($data['jawaban_benar'] as $idx) {
-            if (!is_int($idx) || $idx < 0 || $idx >= $opsiCount) {
-                throw ValidationException::withMessages([
-                    'jawaban_benar' => 'Index jawaban tidak valid.',
-                ]);
-            }
-        }
-
-        $data['opsi'] = array_values($data['opsi']);
-        $data['jawaban_benar'] = array_values($unique);
-    }
-
-    protected static function trueFalse(array &$data): void
-    {
-        if (!is_bool($data['jawaban_benar'])) {
-            throw ValidationException::withMessages([
-                'jawaban_benar' => 'Harus boolean.',
-            ]);
-        }
-
-        // $data['opsi'] = [true, false];
-        $data['opsi'] = null;
-        $data['jawaban_benar'] = [(bool) $data['jawaban_benar']];
-    }
-
-    protected static function ordering(array &$data): void
-    {
-        self::assertArray($data['opsi'], min: 2);
-        self::assertArray($data['jawaban_benar'], min: 2);
-
-        if (count($data['opsi']) !== count($data['jawaban_benar'])) {
-            throw ValidationException::withMessages([
-                'jawaban_benar' => 'Jumlah jawaban harus sama dengan opsi.',
-            ]);
-        }
-
-        $data['opsi'] = array_values($data['opsi']);
-        $data['jawaban_benar'] = array_values($data['jawaban_benar']);
-    }
-
-    protected static function matching(array &$data): void
-    {
-        if (
-            !isset($data['opsi']['kiri'], $data['opsi']['kanan']) ||
-            !is_array($data['opsi']['kiri']) ||
-            !is_array($data['opsi']['kanan'])
-        ) {
-            throw ValidationException::withMessages([
-                'opsi' => 'Matching harus punya kiri & kanan.',
-            ]);
-        }
-
-        $data['opsi'] = [
-            'kiri' => array_values($data['opsi']['kiri']),
-            'kanan' => array_values($data['opsi']['kanan']),
-        ];
 
         if (!is_array($data['jawaban_benar'])) {
             throw ValidationException::withMessages([
-                'jawaban_benar' => 'Jawaban harus array mapping.',
+                'jawaban_benar' => 'Jawaban harus array index.',
             ]);
         }
     }
 
-    protected static function assertArray($value, int $min = 1): void
+    protected static function validateTrueFalse(array $data): void
     {
-        if (!is_array($value) || count($value) < $min) {
+        if (!is_bool($data['jawaban_benar'])) {
             throw ValidationException::withMessages([
-                'opsi' => "Minimal $min item diperlukan.",
+                'jawaban_benar' => 'Jawaban harus boolean.',
             ]);
         }
     }
 
-    protected static function assertInt($value): void
+    protected static function validateOrdering(array $data): void
     {
-        if (!is_int($value)) {
+        if (!is_array($data['opsi']) || !is_array($data['jawaban_benar'])) {
             throw ValidationException::withMessages([
-                'jawaban_benar' => 'Harus integer.',
+                'ordering' => 'Opsi & jawaban harus array.',
             ]);
         }
+    }
+
+    protected static function validateMatching(array $data): void
+    {
+        if (
+            !isset($data['opsi']['kiri'], $data['opsi']['kanan']) ||
+            !is_array($data['jawaban_benar'])
+        ) {
+            throw ValidationException::withMessages([
+                'matching' => 'Format matching tidak valid.',
+            ]);
+        }
+    }
+
+    /* ======================================================
+       NORMALIZER STORAGE
+    ====================================================== */
+    protected static function normalizeForStorage(array $data): array
+    {
+        // simpan jawaban_benar selalu sebagai ARRAY (JSON aman)
+        if ($data['tipe_pertanyaan'] === 'true_false') {
+            $data['jawaban_benar'] = [(bool) $data['jawaban_benar']];
+        }
+
+        if ($data['tipe_pertanyaan'] === 'multiple_choice_single') {
+            $data['jawaban_benar'] = [(int) $data['jawaban_benar']];
+        }
+
+        return $data;
     }
 }

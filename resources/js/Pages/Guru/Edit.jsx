@@ -1,527 +1,284 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
-import { FaTrash, FaPlus } from "react-icons/fa";
-import { WebAPI } from "@/lib/api.web";
 import webFetch from "@/lib/webFetch";
+import { WebAPI } from "@/lib/api.web";
+import { FaPlus, FaTrash } from "react-icons/fa";
 
 export default function EditQuiz({ quizId }) {
-    const editFormRef = useRef(null);
+  const editRef = useRef(null);
 
-    /* ===============================
-       CHANGE TRACKING (PERSISTENT)
-    =============================== */
-    const addedQuestionsRef = useRef([]);
-    const updatedQuestionsRef = useRef(new Map());
-    const deletedQuestionIdsRef = useRef(new Set());
+  /* ================= TRACKING ================= */
+  const addedRef = useRef([]);
+  const updatedRef = useRef(new Map());
+  const deletedRef = useRef(new Set());
 
-    /* ===============================
-       STATE
-    =============================== */
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+  /* ================= QUIZ ================= */
+  const [judul, setJudul] = useState("");
+  const [totalWaktu, setTotalWaktu] = useState("");
+  const [showAnswer, setShowAnswer] = useState(true);
+  const [showRank, setShowRank] = useState(true);
+  const [questions, setQuestions] = useState([]);
 
-    const [title, setTitle] = useState("");
-    const [duration, setDuration] = useState("");
-    const [showAnswers, setShowAnswers] = useState(false);
-    const [showLeaderboard, setShowLeaderboard] = useState(false);
-    const [questions, setQuestions] = useState([]);
+  /* ================= FORM ================= */
+  const [editingId, setEditingId] = useState(null);
+  const [tipe, setTipe] = useState("multiple_choice_single");
+  const [text, setText] = useState("");
+  const [opsi, setOpsi] = useState(["", "", "", ""]);
+  const [jawabanSingle, setJawabanSingle] = useState(0);
+  const [jawabanMulti, setJawabanMulti] = useState([]);
+  const [batasWaktu, setBatasWaktu] = useState("");
 
-    /* ===============================
-       FORM STATE
-    =============================== */
-    const [editingId, setEditingId] = useState(null);
-    const [qText, setQText] = useState("");
-    const [qImage, setQImage] = useState("");
-    const [qMath, setQMath] = useState("");
-    const [optA, setOptA] = useState("");
-    const [optB, setOptB] = useState("");
-    const [optC, setOptC] = useState("");
-    const [optD, setOptD] = useState("");
-    const [correct, setCorrect] = useState("a");
-    const [qTimer, setQTimer] = useState("");
-
-    /* ===============================
-       FETCH QUIZ
-    =============================== */
-    useEffect(() => {
-        webFetch(WebAPI.teacher.quiz(quizId))
-            .then((r) => r.json())
-            .then((data) => {
-
-                console.log("Fetched quiz data:", data);
-
-                setTitle(data.judul);
-                setDuration(data.total_waktu ?? "");
-                setShowAnswers(data.tampilkan_jawaban_benar);
-                setShowLeaderboard(data.tampilkan_peringkat);
-
-                setQuestions(
-                    data.pertanyaan.map((q) => ({
-                        id: q.id,
-                        text: q.pertanyaan,
-                        image: q.url_gambar,
-                        math: q.persamaan_matematika,
-                        timer: q.batas_waktu,
-                        a: q.opsi_a,
-                        b: q.opsi_b,
-                        c: q.opsi_c,
-                        d: q.opsi_d,
-                        correct: q.jawaban_benar,
-                    }))
-                );
-            })
-            .catch((err) => {
-                console.error("Fetch error:", err);
-                setError("Gagal memuat kuis. Silakan coba lagi.");
-            })
-            .finally(() => setLoading(false));
-    }, [quizId]);
-
-    /* ===============================
-       HELPERS
-    =============================== */
-    function resetForm() {
-        setEditingId(null);
-        setQText("");
-        setQImage("");
-        setQMath("");
-        setOptA("");
-        setOptB("");
-        setOptC("");
-        setOptD("");
-        setCorrect("a");
-        setQTimer("");
-    }
-
-    function startEdit(q) {
-        setEditingId(q.id);
-        setQText(q.text);
-        setQImage(q.image ?? "");
-        setQMath(q.math ?? "");
-        setOptA(q.a);
-        setOptB(q.b);
-        setOptC(q.c);
-        setOptD(q.d);
-        setCorrect(q.correct);
-        setQTimer(q.timer ?? "");
-        editFormRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-
-    function getCsrfToken() {
-        return decodeURIComponent(
-            document.cookie
-                .split("; ")
-                .find(row => row.startsWith("XSRF-TOKEN="))
-                ?.split("=")[1] ?? ""
-        );
-    }
-
-    /* ===============================
-       ADD / UPDATE QUESTION
-    =============================== */
-    function submitQuestion() {
-        if (!qText.trim()) return alert("Pertanyaan wajib diisi");
-
-        // const payload = {
-        //     pertanyaan: qText,
-        //     opsi_a: optA,
-        //     opsi_b: optB,
-        //     opsi_c: optC,
-        //     opsi_d: optD,
-        //     jawaban_benar: correct,
-        //     url_gambar: qImage || null,
-        //     persamaan_matematika: qMath || null,
-        //     batas_waktu: qTimer ? Number(qTimer) : null,
-        // };
-
-        const payload = {
-            pertanyaan: qText,
-            opsi_a: optA,
-            opsi_b: optB,
-            opsi_c: optC,
-            opsi_d: optD,
-            jawaban_benar: correct,
-            url_gambar: qImage || null,
-            persamaan_matematika: qMath || null,
-            batas_waktu: qTimer ? Number(qTimer) : null,
-        };
-
-        if (editingId) {
-            updatedQuestionsRef.current.set(editingId, payload);
-            setQuestions((qs) =>
-                qs.map((q) =>
-                    q.id === editingId ? {
-                        ...q,
-                        text: qText,
-                        a: optA,
-                        b: optB,
-                        c: optC,
-                        d: optD,
-                        correct: correct,
-                        image: qImage,
-                        math: qMath,
-                        timer: qTimer
-                    } : q
-                )
-            );
-        } else {
-            const tempId = `temp-${Date.now()}`;
-            addedQuestionsRef.current.push({ ...payload, kuis_id: quizId });
-
-            const newQuestionState = {
-                id: tempId, // <--- THIS FIXES THE WARNING
-                text: qText,
-                a: optA,
-                b: optB,
-                c: optC,
-                d: optD,
-                correct: correct,
-                image: qImage,
-                math: qMath,
-                timer: qTimer
-            };
-
-            setQuestions((qs) => [...qs, newQuestionState]);
-        }
-
-        resetForm();
-    }
-
-    /* ===============================
-       DELETE QUESTION
-    =============================== */
-    function deleteQuestion(id) {
-        if (!confirm("Hapus pertanyaan?")) return;
-
-        if (String(id).startsWith("temp-")) {
-            addedQuestionsRef.current = addedQuestionsRef.current.filter(
-                (_, i) => i !== id
-            );
-        } else {
-            deletedQuestionIdsRef.current.add(id);
-            updatedQuestionsRef.current.delete(id);
-        }
-
-        setQuestions((qs) => qs.filter((q) => q.id !== id));
-    }
-
-    /* ===============================
-       SAVE ALL
-    =============================== */
-    async function saveQuiz() {
-        const token = localStorage.getItem("auth_token");
-
-        try {
-            /* 1️⃣ UPDATE KUIS */
-            await webFetch(WebAPI.teacher.quiz(quizId), {
-                method: "PUT",
-                headers: {
-                    "X-XSRF-TOKEN": getCsrfToken(),
-                },
-                body: JSON.stringify({
-                    judul: title,
-                    total_waktu: duration,
-                    tampilkan_jawaban_benar: showAnswers,
-                    tampilkan_peringkat: showLeaderboard,
-                }),
-            });
-
-            /* 2️⃣ DELETE */
-            for (const id of deletedQuestionIdsRef.current) {
-                console.log("Deleting question:", id);
-                await webFetch(WebAPI.teacher.question(id), {
-                    method: "DELETE",
-                    headers: {
-                        "X-XSRF-TOKEN": getCsrfToken(),
-                    },
-                });
-            }
-
-            /* 3️⃣ UPDATE */
-            for (const [id, payload] of updatedQuestionsRef.current.entries()) {
-                console.log("Updating question:", id, payload);
-                const res = await webFetch(WebAPI.teacher.question(id), {
-                    method: "PUT",
-                    headers: {
-                        "X-XSRF-TOKEN": getCsrfToken(),
-                    },
-                    body: JSON.stringify(payload),
-                });
-                console.log("Update response:", res);
-            }
-
-            /* 4️⃣ ADD */
-            for (const q of addedQuestionsRef.current) {
-                console.log("Adding question:", q);
-                const res = await webFetch(WebAPI.teacher.createQuestion, {
-                    method: "POST",
-                    headers: {
-                        "X-XSRF-TOKEN": getCsrfToken(),
-                    },
-                    body: JSON.stringify(q),
-                });
-                console.log("Add response:", res);
-            }
-
-
-            alert("Perubahan disimpan");
-            // window.location.href = "/dashboard";
-        } catch (e) {
-            console.error("Save error:", e);
-            alert("Gagal menyimpan perubahan");
-        }
-    }
-
-    /* ===============================
-       UI
-    =============================== */
-    if (loading)
-        return (
-            <ProtectedLayout allowedRoles={["teacher"]}>
-                <div className="p-6">Loading...</div>
-            </ProtectedLayout>
-        );
-
-    if (error)
-        return (
-            <ProtectedLayout allowedRoles={["teacher"]}>
-                <div className="p-6 text-red-600">{error}</div>
-            </ProtectedLayout>
-        );
-
-    return (
-        <ProtectedLayout allowedRoles={["teacher"]}>
-            <div className="max-w-4xl mx-auto space-y-8">
-
-                {/* HEADER */}
-                <div className="flex justify-between mb-6">
-                    <button
-                        onClick={() => window.location.href = "/dashboard"}
-                        className="text-blue-700"
-                    >
-                        ← Kembali
-                    </button>
-
-                    <button
-                        onClick={saveQuiz}
-                        className="bg-green-600 text-white px-4 py-2 rounded"
-                    >
-                        Simpan Perubahan
-                    </button>
-                </div>
-
-                {/* PENGATURAN KUIS */}
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="font-semibold text-lg mb-3">Pengaturan Kuis</h2>
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">Judul Kuis</label>
-                            <input
-                                className="w-full border p-2 rounded mt-1"
-                                value={title}
-                                onChange={e => setTitle(e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">
-                                Total Waktu Kuis (detik)
-                            </label>
-                            <input
-                                type="number"
-                                className="w-full border p-2 rounded mt-1"
-                                value={duration}
-                                onChange={e => setDuration(e.target.value)}
-                            />
-                        </div>
-
-                        <div className="flex gap-6 mt-4">
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    checked={showAnswers}
-                                    onChange={e => setShowAnswers(e.target.checked)}
-                                />
-                                Tunjukkan Jawaban Benar
-                            </label>
-
-                            <label className="flex items-center gap-2">
-                                <input
-                                    type="checkbox"
-                                    checked={showLeaderboard}
-                                    onChange={e => setShowLeaderboard(e.target.checked)}
-                                />
-                                Tunjukkan Peringkat
-                            </label>
-                        </div>
-                    </div>
-                </div>
-
-                {/* TAMBAH PERTANYAAN */}
-                <div ref={editFormRef} className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="font-semibold text-lg mb-3">Pertanyaan</h2>
-
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">Pertanyaan</label>
-                            <textarea
-                                className="w-full border p-2 rounded mt-1"
-                                placeholder="Masukkan pertanyaan kuis"
-                                value={qText}
-                                onChange={(e) => setQText(e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">URL Gambar (opsional)</label>
-                            <input
-                                type="text"
-                                className="w-full border p-2 rounded mt-1"
-                                placeholder="https://..."
-                                value={qImage}
-                                onChange={e => setQImage(e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">Persamaan Matematika</label>
-                            <input
-                                type="text"
-                                className="w-full border p-2 rounded mt-1"
-                                placeholder="x^2 + y^2 = z^2"
-                                value={qMath}
-                                onChange={e => setQMath(e.target.value)}
-                            />
-                        </div>
-
-                        <div>
-                            <label className="text-sm font-medium text-gray-600">Pilihan Jawaban</label>
-                            <div className="grid grid-cols-2 gap-3 mt-1">
-                                <input placeholder="Masukkan pilihan a" className="border p-2 rounded" value={optA} onChange={e => setOptA(e.target.value)} />
-                                <input placeholder="Masukkan pilihan b" className="border p-2 rounded" value={optB} onChange={e => setOptB(e.target.value)} />
-                                <input placeholder="Masukkan pilihan c" className="border p-2 rounded" value={optC} onChange={e => setOptC(e.target.value)} />
-                                <input placeholder="Masukkan pilihan d" className="border p-2 rounded" value={optD} onChange={e => setOptD(e.target.value)} />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                            <div>
-                                <label className="text-sm font-medium text-gray-600">Kunci Jawaban</label>
-                                <select
-                                    className="border p-2 rounded w-full mt-1"
-                                    value={correct}
-                                    onChange={e => setCorrect(e.target.value)}
-                                >
-                                    <option value="a">Pilihan a</option>
-                                    <option value="b">Pilihan b</option>
-                                    <option value="c">Pilihan c</option>
-                                    <option value="d">Pilihan d</option>
-                                </select>
-
-                            </div>
-
-                            <div>
-                                <label className="text-sm font-medium text-gray-600">Batas Waktu per Soal (detik)</label>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    className="border p-2 rounded w-full mt-1"
-                                    placeholder="Masukkan batas waktu"
-                                    value={qTimer}
-                                    onChange={e => setQTimer(e.target.value)}
-                                />
-                            </div>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={submitQuestion}
-                            className="bg-blue-700 text-white px-4 py-2 rounded flex items-center gap-2"
-                        >
-                            {editingId ? "Edit Soal" : <><FaPlus /> Tambahkan Soal</>}
-                        </button>
-
-                    </div>
-
-                </div>
-
-                {/* LIST PERTANYAAN */}
-                <div className="bg-white p-6 rounded-lg shadow">
-                    <h2 className="font-semibold text-lg mb-4">Pertanyaan</h2>
-                    <div className="space-y-4">
-                        {questions.map((q, index) => (
-                            <div key={q.id} className="border rounded-lg p-4 shadow-sm bg-white">
-
-                                {/* Header */}
-                                <div className="flex items-start justify-between mb-3">
-                                    <div className="font-medium text-gray-800">
-                                        {index + 1}. {q.text}
-                                    </div>
-
-                                    <div className="flex gap-3 items-center">
-                                        <button
-                                            type="button"
-                                            onClick={() => startEdit(q)}
-                                            className="text-blue-600 text-sm font-medium"
-                                        >
-                                            Edit
-                                        </button>
-
-
-                                        <button
-                                            onClick={() => deleteQuestion(q.id)}
-                                            className="text-red-600 hover:text-red-800"
-                                        >
-                                            <FaTrash />
-                                        </button>
-
-                                    </div>
-
-                                </div>
-
-                                {q.image && (
-                                    <img src={q.image} className="max-w-xs rounded border mb-3" />
-                                )}
-
-                                {q.math && (
-                                    <div className="text-gray-600 mb-3 font-mono">
-                                        <span className="font-semibold">Persamaan:</span> {q.math}
-                                    </div>
-                                )}
-
-                                <div className="grid grid-cols-2 gap-3 text-sm">
-                                    {[
-                                        { key: 'a', value: q.a },
-                                        { key: 'b', value: q.b },
-                                        { key: 'c', value: q.c },
-                                        { key: 'd', value: q.d },
-                                    ]
-                                        .filter(option => option.value && option.value.trim() !== "")
-
-                                        .map(({ key, value }) => (
-                                            <div
-                                                key={key}
-                                                className={`border px-3 py-2 rounded ${key === q.correct
-                                                    ? "bg-green-100 border-green-600"
-                                                    : "bg-gray-50"
-                                                    }`}
-                                            >
-                                                <span className="font-semibold uppercase">{key}.</span>{" "}
-                                                {value}
-                                            </div>
-                                        ))}
-                                </div>
-
-                                <div className="text-xs text-gray-500 mt-3">
-                                    Batas waktu: {q.timer ? `${q.timer} detik` : "Tidak ada batas waktu"}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-
-                </div>
-            </div>
-        </ProtectedLayout>
+  /* ================= CSRF ================= */
+  function getCsrfToken() {
+    return decodeURIComponent(
+      document.cookie
+        .split("; ")
+        .find((r) => r.startsWith("XSRF-TOKEN="))
+        ?.split("=")[1] ?? ""
     );
+  }
+
+  /* ================= FETCH ================= */
+  useEffect(() => {
+    webFetch(WebAPI.teacher.quiz(quizId))
+      .then((r) => r.json())
+      .then((data) => {
+        setJudul(data.judul);
+        setTotalWaktu(data.total_waktu ?? "");
+        setShowAnswer(data.tampilkan_jawaban_benar);
+        setShowRank(data.tampilkan_peringkat);
+
+        setQuestions(
+          data.pertanyaan.map((p) => ({
+            id: p.id,
+            tipe_pertanyaan: p.tipe_pertanyaan,
+            pertanyaan: p.pertanyaan,
+            opsi: p.opsi,
+            jawaban_benar: p.jawaban_benar,
+            batas_waktu: p.batas_waktu,
+          }))
+        );
+      });
+  }, [quizId]);
+
+  /* ================= HELPERS ================= */
+  function resetForm() {
+    setEditingId(null);
+    setTipe("multiple_choice_single");
+    setText("");
+    setOpsi(["", "", "", ""]);
+    setJawabanSingle(0);
+    setJawabanMulti([]);
+    setBatasWaktu("");
+  }
+
+  function startEdit(q) {
+    setEditingId(q.id);
+    setTipe(q.tipe_pertanyaan);
+    setText(q.pertanyaan);
+    setBatasWaktu(q.batas_waktu ?? "");
+
+    if (q.tipe_pertanyaan === "true_false") {
+      setJawabanSingle(q.jawaban_benar[0] ? 1 : 0);
+      setOpsi(["", "", "", ""]);
+      setJawabanMulti([]);
+    } 
+    else if (q.tipe_pertanyaan === "multiple_choice_multi") {
+      setOpsi(q.opsi);
+      setJawabanMulti(q.jawaban_benar);
+    } 
+    else {
+      setOpsi(q.opsi);
+      setJawabanSingle(q.jawaban_benar[0]);
+      setJawabanMulti([]);
+    }
+
+    editRef.current?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  /* ================= SUBMIT ================= */
+  function submitQuestion() {
+    if (!text.trim()) return alert("Pertanyaan wajib diisi");
+
+    let payload = {
+      tipe_pertanyaan: tipe,
+      pertanyaan: text,
+      batas_waktu: batasWaktu ? Number(batasWaktu) : null,
+    };
+
+    if (tipe === "true_false") {
+      payload.opsi = null;
+      payload.jawaban_benar = Boolean(jawabanSingle);
+    } 
+    else if (tipe === "multiple_choice_multi") {
+      payload.opsi = opsi.filter(o => o.trim());
+      payload.jawaban_benar = jawabanMulti;
+    } 
+    else {
+      payload.opsi = opsi.filter(o => o.trim());
+      payload.jawaban_benar = jawabanSingle;
+    }
+
+    if (editingId) {
+      updatedRef.current.set(editingId, payload);
+      setQuestions(qs =>
+        qs.map(q => q.id === editingId ? { ...q, ...payload } : q)
+      );
+    } else {
+      const tempId = `temp-${Date.now()}`;
+      addedRef.current.push({ ...payload, kuis_id: quizId });
+
+      setQuestions(qs => [...qs, { id: tempId, ...payload }]);
+    }
+
+    resetForm();
+  }
+
+  /* ================= DELETE ================= */
+  function deleteQuestion(id) {
+    if (!confirm("Hapus soal?")) return;
+
+    if (String(id).startsWith("temp-")) {
+      addedRef.current = addedRef.current.filter(q => q.id !== id);
+    } else {
+      deletedRef.current.add(id);
+      updatedRef.current.delete(id);
+    }
+
+    setQuestions(qs => qs.filter(q => q.id !== id));
+  }
+
+  /* ================= SAVE ================= */
+  async function saveQuiz() {
+    try {
+      /* QUIZ */
+      await webFetch(WebAPI.teacher.quiz(quizId), {
+        method: "PUT",
+        headers: { "X-XSRF-TOKEN": getCsrfToken() },
+        body: JSON.stringify({
+          judul,
+          total_waktu: totalWaktu,
+          tampilkan_jawaban_benar: showAnswer,
+          tampilkan_peringkat: showRank,
+        }),
+      });
+
+      /* DELETE */
+      for (const id of deletedRef.current) {
+        await webFetch(WebAPI.teacher.question(id), {
+          method: "DELETE",
+          headers: { "X-XSRF-TOKEN": getCsrfToken() },
+        });
+      }
+
+      /* UPDATE */
+      for (const [id, payload] of updatedRef.current.entries()) {
+        await webFetch(WebAPI.teacher.question(id), {
+          method: "PUT",
+          headers: { "X-XSRF-TOKEN": getCsrfToken() },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      /* ADD */
+      for (const q of addedRef.current) {
+        await webFetch(WebAPI.teacher.createQuestion, {
+          method: "POST",
+          headers: { "X-XSRF-TOKEN": getCsrfToken() },
+          body: JSON.stringify(q),
+        });
+      }
+
+      alert("Perubahan disimpan");
+      window.location.href = "/dashboard";
+    } catch (e) {
+      console.error(e);
+      alert("Gagal menyimpan perubahan");
+    }
+  }
+
+  /* ================= UI ================= */
+  return (
+    <ProtectedLayout allowedRoles={["teacher"]}>
+      <div className="max-w-4xl mx-auto space-y-6">
+
+        <div className="flex justify-between">
+          <button onClick={() => window.history.back()}>← Kembali</button>
+          <button onClick={saveQuiz} className="bg-green-600 text-white px-4 py-2 rounded">
+            Simpan
+          </button>
+        </div>
+
+        {/* QUIZ */}
+        <div className="bg-white p-4 rounded shadow space-y-3">
+          <input className="border p-2 w-full" value={judul} onChange={e => setJudul(e.target.value)} />
+          <input type="number" className="border p-2 w-full" value={totalWaktu} onChange={e => setTotalWaktu(e.target.value)} />
+        </div>
+
+        {/* FORM */}
+        <div ref={editRef} className="bg-white p-4 rounded shadow space-y-3">
+          <select value={tipe} onChange={e => setTipe(e.target.value)} className="border p-2 w-full">
+            <option value="multiple_choice_single">Single</option>
+            <option value="multiple_choice_multi">Multi</option>
+            <option value="true_false">True / False</option>
+          </select>
+
+          <textarea className="border p-2 w-full" value={text} onChange={e => setText(e.target.value)} />
+
+          {tipe !== "true_false" &&
+            opsi.map((o, i) => (
+              <input key={i} className="border p-2 w-full" value={o}
+                onChange={e => {
+                  const c = [...opsi];
+                  c[i] = e.target.value;
+                  setOpsi(c);
+                }} />
+            ))}
+
+          {tipe === "multiple_choice_single" && (
+            <select className="border p-2 w-full" value={jawabanSingle} onChange={e => setJawabanSingle(Number(e.target.value))}>
+              {opsi.map((_, i) => <option key={i} value={i}>Jawaban {i + 1}</option>)}
+            </select>
+          )}
+
+          {tipe === "multiple_choice_multi" &&
+            opsi.map((o, i) => o.trim() && (
+              <label key={i} className="flex gap-2">
+                <input type="checkbox"
+                  checked={jawabanMulti.includes(i)}
+                  onChange={() =>
+                    setJawabanMulti(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i])
+                  }
+                />
+                {o}
+              </label>
+            ))}
+
+          {tipe === "true_false" && (
+            <select className="border p-2 w-full" value={jawabanSingle} onChange={e => setJawabanSingle(Number(e.target.value))}>
+              <option value={1}>Benar</option>
+              <option value={0}>Salah</option>
+            </select>
+          )}
+
+          <button onClick={submitQuestion} className="bg-blue-700 text-white px-4 py-2 rounded flex gap-2">
+            <FaPlus /> {editingId ? "Update Soal" : "Tambah Soal"}
+          </button>
+        </div>
+
+        {/* LIST */}
+        {questions.map((q, i) => (
+          <div key={q.id} className="border p-3 rounded flex justify-between">
+            <div>{i + 1}. {q.pertanyaan} ({q.tipe_pertanyaan})</div>
+            <div className="flex gap-3">
+              <button onClick={() => startEdit(q)}>Edit</button>
+              <button onClick={() => deleteQuestion(q.id)} className="text-red-600">
+                <FaTrash />
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </ProtectedLayout>
+  );
 }
