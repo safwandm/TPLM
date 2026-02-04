@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import webFetch from "@/lib/webFetch";
 import { WebAPI } from "@/lib/api.web";
+import { ApiAPI } from "../../lib/api.api";
 import Leaderboard from "../../Components/Leaderboard";
 
 export default function StudentQuiz() {
@@ -42,7 +43,9 @@ export default function StudentQuiz() {
     /* ================= SOCKET ================= */
     useEffect(() => {
         async function fetchConfig() {
-            const res = await webFetch(WebAPI.session.getConfig(sessionId));
+            const res = await webFetch(WebAPI.session.getConfig(sessionId), {
+                skipAuth: true,
+            });
             const config = await res.json();
             setQuizConfig(config);
 
@@ -117,7 +120,8 @@ export default function StudentQuiz() {
     useEffect(() => {
         async function restore() {
             const res = await webFetch(
-                WebAPI.session.restore(sessionId, peserta.id)
+                WebAPI.session.restore(sessionId, peserta.id),
+                {skipAuth: true}
             );
             const data = await res.json();
 
@@ -155,15 +159,6 @@ export default function StudentQuiz() {
         setTimeoutPenaltyApplied(false);
     }
 
-    function getCsrfToken() {
-        return decodeURIComponent(
-            document.cookie
-                .split("; ")
-                .find(r => r.startsWith("XSRF-TOKEN="))
-                ?.split("=")[1] ?? ""
-        );
-    }
-
     /* ================= SUBMIT ================= */
     async function submitAnswer() {
         if (status !== "idle" || timeLeft === 0) return;
@@ -173,13 +168,13 @@ export default function StudentQuiz() {
 
         try {
             const res = await webFetch(
-                WebAPI.session.submitAnswer(sessionId, currentQuestion.pertanyaan_id),
+                ApiAPI.session.submitAnswer(
+                    sessionId,
+                    currentQuestion.pertanyaan_id
+                ),
                 {
                     method: "POST",
-                    headers: {
-                        "X-XSRF-TOKEN": getCsrfToken(),
-                        "Content-Type": "application/json",
-                    },
+                    skipAuth: true,
                     body: JSON.stringify({
                         peserta_id: peserta.id,
                         pertanyaan_id: currentQuestion.pertanyaan_id,
@@ -206,6 +201,7 @@ export default function StudentQuiz() {
             setStatus("result");
         } catch (err) {
             console.error(err);
+            console.error(err?.message || "Gagal mengirim jawaban");
         }
     }
 

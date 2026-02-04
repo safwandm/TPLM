@@ -229,12 +229,14 @@ class SesiKuisController extends Controller
         $startedAt = Carbon::parse($startedAtRaw);
         $now = now();
 
-        $waktuJawabMs = $startedAt->diffInMilliseconds($now);
+        $waktuJawabMs = (int) $startedAt->diffInMilliseconds($now);
 
         $question = Pertanyaan::find($currentQuestionId);
 
         $correctness = $question->cekJawaban($request->jawaban);
+        $correctnessInt = (int) round($correctness);
         $score = 0;
+        $finalScore = 0; // ALWAYS integer-safe score
         
         if ($correctness > 0) {
             $timeLimitMs = $question->batas_waktu * 1000;
@@ -250,7 +252,10 @@ class SesiKuisController extends Controller
                 ($timeFactor * $timeBonusScore))
                 * $correctness;
 
-            $peserta->total_skor += (int) round($score);
+            // force integer BEFORE touching DB
+            $finalScore = (int) round($score);
+
+            $peserta->total_skor = (int) $peserta->total_skor + $finalScore;
         }
 
         if ($kuis->mode === 'game' && $correctness <= 0) {
@@ -259,16 +264,22 @@ class SesiKuisController extends Controller
 
         $peserta->save();
 
+        // Log
+
+        Log::info("Peserta {$peserta->id} menjawab pertanyaan {$question_id} dengan jawaban " . json_encode($request->jawaban) . " dan skor {$finalScore}");
+
         $jawaban = JawabanPeserta::updateOrCreate(
             [
                 'peserta_id' => $peserta->id,
                 'pertanyaan_id' => $question_id,
             ],
             [
-                'jawaban' => $request->jawaban,
-                'waktu_jawab_ms' => $waktuJawabMs,
-                'correctness' => $correctness,
-                'total_skor' => (int) round($score)
+                'jawaban' => is_array($request->jawaban) || is_object($request->jawaban)
+                    ? json_encode($request->jawaban)
+                    : $request->jawaban,
+                'waktu_jawab_ms' => (int) $waktuJawabMs,
+                'correctness' => $correctnessInt,
+                'total_skor' => $finalScore
             ]
         );
 

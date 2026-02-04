@@ -74,9 +74,7 @@ export default function GuruQuiz() {
     /* ================= FETCH INITIAL ================= */
     useEffect(() => {
         const res = webFetch(WebAPI.session.detail(id), {
-            headers: {
-                "X-XSRF-TOKEN": getCsrfToken(),
-            },
+            skipAuth: true,
         })
             .then(res => res.json())
             .then(json => {

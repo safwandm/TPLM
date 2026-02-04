@@ -142,8 +142,10 @@ Route::prefix('web/sesi')
         Route::post('/', [SesiKuisController::class, 'create']);
         Route::post('/{id}/start', [SesiKuisController::class, 'start']);
         Route::get('/{id}', [SesiKuisController::class, 'detail_sesi']);
-        Route::post('/{id}/abort', [SesiKuisController::class, 'abort']);
     });
+
+// Temp, try to implement it well later
+Route::get('web/sesi/{id}', [SesiKuisController::class, 'detail_sesi']);
 
 /*
 |--------------------------------------------------------------------------
@@ -153,10 +155,11 @@ Route::prefix('web/sesi')
 |--------------------------------------------------------------------------
 */
 
-Route::post(
-    'web/sesi/{session_id}/pertanyaan/{question_id}/jawab',
-    [SesiKuisController::class, 'submit']
-);
+// Route::post(
+//     'web/sesi/{session_id}/pertanyaan/{question_id}/jawab',
+//     [SesiKuisController::class, 'submit']
+// );
+
 Route::get('/sesi/{id}/config', [SesiKuisController::class, 'config']);
 Route::post('/join/{kode}', [SesiPesertaController::class, 'join']);
 Route::get('/sesi/peserta/{peserta_id}', [SesiPesertaController::class, 'get']);

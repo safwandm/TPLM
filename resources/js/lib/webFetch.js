@@ -1,4 +1,6 @@
 export default async function webFetch(url, options = {}) {
+    const skipAuth = options.skipAuth === true;
+
     function getCsrfToken() {
         return decodeURIComponent(
             document.cookie
@@ -9,11 +11,11 @@ export default async function webFetch(url, options = {}) {
     }
 
     const defaultOptions = {
-        credentials: "include",
+        credentials: skipAuth ? "omit" : "include",
         headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
-            "X-XSRF-TOKEN": getCsrfToken(),
+            ...(skipAuth ? {} : { "X-XSRF-TOKEN": getCsrfToken() }),
         },
     };
 
@@ -28,7 +30,7 @@ export default async function webFetch(url, options = {}) {
 
     const res = await fetch(url, finalOptions);
 
-    if (res.status === 401 || res.status === 419) {
+    if (!skipAuth && (res.status === 401 || res.status === 419)) {
         alert("Sesi Anda telah berakhir. Silakan login kembali.");
         window.location.href = "/login";
     }

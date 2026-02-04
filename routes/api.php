@@ -65,6 +65,8 @@ Route::prefix('sesi')->middleware(['auth:sanctum', 'role:teacher|admin'])->group
     Route::post('/{id}/start', [SesiKuisController::class, 'start']);
 });
 
+Route::post('/sesi/{id}/abort', [SesiKuisController::class, 'abort']);
+
 Route::get('/sesi/{id}', [SesiKuisController::class, 'detail_sesi']);
 
 Route::post('/sesi/{session_id}/pertanyaan/{question_id}/jawab', [SesiKuisController::class, 'submit']);

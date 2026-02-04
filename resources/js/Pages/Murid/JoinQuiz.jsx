@@ -10,14 +10,6 @@ export default function JoinQuiz() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
-    function getCsrfToken() {
-        return decodeURIComponent(
-            document.cookie
-                .split("; ")
-                .find(row => row.startsWith("XSRF-TOKEN="))
-                ?.split("=")[1] ?? ""
-        );
-    }
 
     async function handleJoin(e) {
         e.preventDefault();
@@ -27,9 +19,7 @@ export default function JoinQuiz() {
         try {
             const res = await webFetch(WebAPI.session.joinByCode(code), {
                 method: "POST",
-                headers: {
-                    "X-XSRF-TOKEN": getCsrfToken(),
-                },
+                skipAuth: true,
                 body: JSON.stringify({ nama: name }),
             });
 
@@ -66,7 +56,7 @@ export default function JoinQuiz() {
 
                 {/* Header */}
                 <div className="flex flex-col items-center mb-6">
-                    <img src="{logo}" alt="Logo" className="w-24 h-24 mb-3" />
+                    <img src="logo" alt="Logo" className="w-24 h-24 mb-3" />
                     <h1 className="text-xl font-semibold text-gray-800">
                         Ayo Ikut Kuis! 🚀
                     </h1>

@@ -25,7 +25,9 @@ export default function WaitingRoom({ id }) {
     useEffect(() => {
         async function fetchSesi() {
             try {
-                const res = await webFetch(WebAPI.session.detail(id));
+                const res = await webFetch(WebAPI.session.detail(id), {
+                    skipAuth: true,
+                });
 
                 if (!res.ok) throw new Error("Gagal memuat sesi");
 
@@ -51,14 +53,6 @@ export default function WaitingRoom({ id }) {
         fetchSesi();
     }, [id]);
 
-    function getCsrfToken() {
-        return decodeURIComponent(
-            document.cookie
-                .split("; ")
-                .find(row => row.startsWith("XSRF-TOKEN="))
-                ?.split("=")[1] ?? ""
-        );
-    }
 
     /* ================================
        WEBSOCKET
