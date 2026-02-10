@@ -62,7 +62,7 @@ export default function StudentQuiz() {
             .listen(".QuestionStarted", (e) => {
                 setCurrentQuestion(e);
                 setQuestionIndex(p => p + 1);
-                resetState();
+                resetState(e);
 
                 if (e.ends_at) {
                     const end = new Date(e.ends_at).getTime();
@@ -139,6 +139,12 @@ export default function StudentQuiz() {
                 setCurrentQuestion(data.current_question);
                 setTimeLeft(Math.floor(data.time_left));
 
+                if (!data.answered && data.current_question.tipe_pertanyaan === "ordering") {
+                    setSelectedAnswer(
+                        data.current_question.opsi.map((_, i) => i)
+                    );
+                }
+
                 if (data.answered) {
                     setSelectedAnswer(data.jawaban);
                     setStatus("result");
@@ -152,11 +158,17 @@ export default function StudentQuiz() {
     }, []);
 
     /* ================= HELPERS ================= */
-    function resetState() {
+    function resetState(question = null) {
         setStatus("idle");
-        setSelectedAnswer(null);
         setIsCorrect(null);
         setTimeoutPenaltyApplied(false);
+
+        // Prevent null answer for ordering questions
+        if (question?.tipe_pertanyaan === "ordering") {
+            setSelectedAnswer(question.opsi.map((_, i) => i));
+        } else {
+            setSelectedAnswer(null);
+        }
     }
 
     /* ================= SUBMIT ================= */
@@ -178,7 +190,11 @@ export default function StudentQuiz() {
                     body: JSON.stringify({
                         peserta_id: peserta.id,
                         pertanyaan_id: currentQuestion.pertanyaan_id,
-                        jawaban: selectedAnswer,
+                        jawaban:
+                            selectedAnswer ??
+                            (currentQuestion.tipe_pertanyaan === "ordering"
+                                ? currentQuestion.opsi.map((_, i) => i)
+                                : null),
                     }),
                 }
             );
@@ -200,6 +216,7 @@ export default function StudentQuiz() {
 
             setStatus("result");
         } catch (err) {
+            console.log("Current Question:", currentQuestion);
             console.error(err);
             console.error(err?.message || "Gagal mengirim jawaban");
         }

@@ -2,7 +2,9 @@ import { useState } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import webFetch from "@/lib/webFetch";
 import { WebAPI } from "@/lib/api.web";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import QuizSettings from "@/Components/QuizSettings";
+import QuestionList from "@/Components/QuestionList";
+import QuestionForm from "@/Components/QuestionForm";
 
 export default function CreateQuiz() {
   /* ================= QUIZ ================= */
@@ -13,16 +15,22 @@ export default function CreateQuiz() {
 
   /* ================= QUESTIONS ================= */
   const [questions, setQuestions] = useState([]);
+  const [editingIndex, setEditingIndex] = useState(null);
 
   /* ================= FORM ================= */
   const [tipe, setTipe] = useState("multiple_choice_single");
   const [text, setText] = useState("");
-  const [opsi, setOpsi] = useState(["", "", "", ""]);
+  const [imageUrl, setImageUrl] = useState("");
+  const [mathEq, setMathEq] = useState("");
+  const [opsi, setOpsi] = useState(["", "", "", ""]); // used for MC + ordering
+  const [matchingPairs, setMatchingPairs] = useState([
+    { kiri: "", kanan: "" },
+    { kiri: "", kanan: "" },
+  ]);
   const [jawabanSingle, setJawabanSingle] = useState(0);
   const [jawabanMulti, setJawabanMulti] = useState([]);
   const [batasWaktu, setBatasWaktu] = useState("");
 
-  /* ================= HELPERS ================= */
   function getCsrfToken() {
     return decodeURIComponent(
       document.cookie
@@ -34,19 +42,29 @@ export default function CreateQuiz() {
 
   function resetForm() {
     setText("");
+    setImageUrl("");
+    setMathEq("");
     setOpsi(["", "", "", ""]);
     setJawabanSingle(0);
     setJawabanMulti([]);
     setBatasWaktu("");
+    setMatchingPairs([
+      { kiri: "", kanan: "" },
+      { kiri: "", kanan: "" },
+    ]);
+    setEditingIndex(null);
   }
 
-  /* ================= ADD QUESTION ================= */
   function addQuestion() {
     if (!text.trim()) return alert("Pertanyaan wajib diisi");
 
     const opsiBersih = opsi.filter((o) => o.trim() !== "");
 
-    if (tipe !== "true_false" && opsiBersih.length < 2) {
+    // Only validate opsi for question types that actually use it
+    if (
+      ["multiple_choice_single", "multiple_choice_multi", "ordering"].includes(tipe) &&
+      opsiBersih.length < 2
+    ) {
       return alert("Minimal 2 opsi");
     }
 
@@ -58,48 +76,78 @@ export default function CreateQuiz() {
       id: Date.now(),
       tipe_pertanyaan: tipe,
       pertanyaan: text,
+      image_url: imageUrl || null,
+      persamaan: mathEq || null,
       batas_waktu: batasWaktu ? Number(batasWaktu) : null,
     };
 
     if (tipe === "true_false") {
       payload.opsi = null;
-      payload.jawaban_benar = jawabanSingle === 1; // BOOLEAN MURNI
-    } 
+      payload.jawaban_benar = jawabanSingle === 1;
+    }
     else if (tipe === "multiple_choice_multi") {
       payload.opsi = opsiBersih;
-      payload.jawaban_benar = [...jawabanMulti]; // ARRAY INT
-    } 
+      payload.jawaban_benar = [...jawabanMulti];
+    }
+    else if (tipe === "ordering") {
+      payload.opsi = opsiBersih;
+      payload.jawaban_benar = opsiBersih.map((_, i) => i);
+    }
+    else if (tipe === "matching") {
+      if (matchingPairs.length < 2)
+        return alert("Minimal 2 pasangan");
+
+      const kiri = matchingPairs.map(p => p.kiri).filter(Boolean);
+      const kanan = matchingPairs.map(p => p.kanan).filter(Boolean);
+
+      if (kiri.length !== matchingPairs.length || kanan.length !== matchingPairs.length) {
+        return alert("Semua pasangan harus diisi");
+      }
+
+      payload.opsi = { kiri, kanan };
+
+      payload.jawaban_benar = kiri.map((_, i) => i);
+    }
     else {
       payload.opsi = opsiBersih;
-      payload.jawaban_benar = Number(jawabanSingle); // INT
+      payload.jawaban_benar = Number(jawabanSingle);
     }
 
-    setQuestions((q) => [...q, payload]);
+    if (editingIndex !== null) {
+      console.log("Updating question at index:", editingIndex, "with payload:", payload);
+      setQuestions(prev => {
+        const copy = [...prev];
+        copy[editingIndex] = { ...payload, id: prev[editingIndex].id };
+        return copy;
+      });
+    } else {
+      console.log("Adding new question with payload:", payload);
+      setQuestions((q) => [...q, payload]);
+    }
     resetForm();
   }
 
-  /* ================= SAVE QUIZ ================= */
   async function saveQuiz() {
     if (!judul.trim()) return alert("Judul wajib diisi");
     if (questions.length === 0) return alert("Minimal 1 soal");
 
     const payload = {
       judul,
-      mode: "classic",       // SESUAI CHECK DB
-      hp_awal: null,         // CLASSIC → NULL
+      mode: "classic",
+      hp_awal: null,
       total_waktu: totalWaktu ? Number(totalWaktu) : null,
       tampilkan_jawaban_benar: showAnswer,
       tampilkan_peringkat: showRank,
       pertanyaan: questions.map(q => ({
         tipe_pertanyaan: q.tipe_pertanyaan,
         pertanyaan: q.pertanyaan,
+        image_url: q.image_url,
+        persamaan: q.persamaan,
         opsi: q.opsi === undefined ? null : q.opsi,
         jawaban_benar: q.jawaban_benar,
         batas_waktu: q.batas_waktu ?? null
       }))
     };
-
-    console.log("PAYLOAD QUIZ:", payload);
 
     try {
       const res = await webFetch(WebAPI.teacher.createQuizFull, {
@@ -126,174 +174,80 @@ export default function CreateQuiz() {
     }
   }
 
-  /* ================= UI ================= */
   return (
     <ProtectedLayout allowedRoles={["teacher"]}>
-      <div className="max-w-4xl mx-auto space-y-6">
-        <h1 className="text-xl font-bold">Buat Kuis</h1>
-
-        {/* QUIZ SETTING */}
-        <div className="bg-white p-4 rounded shadow space-y-3">
-          <input
-            className="border p-2 w-full"
-            placeholder="Judul kuis"
-            value={judul}
-            onChange={(e) => setJudul(e.target.value)}
-          />
-
-          <input
-            type="number"
-            className="border p-2 w-full"
-            placeholder="Total waktu (detik)"
-            value={totalWaktu}
-            onChange={(e) => setTotalWaktu(e.target.value)}
-          />
-
-          <label className="flex gap-2">
-            <input
-              type="checkbox"
-              checked={showAnswer}
-              onChange={(e) => setShowAnswer(e.target.checked)}
-            />
-            Tampilkan jawaban
-          </label>
-
-          <label className="flex gap-2">
-            <input
-              type="checkbox"
-              checked={showRank}
-              onChange={(e) => setShowRank(e.target.checked)}
-            />
-            Tampilkan peringkat
-          </label>
-        </div>
-
-        {/* ADD QUESTION */}
-        <div className="bg-white p-4 rounded shadow space-y-3">
-          <select
-            className="border p-2 w-full"
-            value={tipe}
-            onChange={(e) => {
-              setTipe(e.target.value);
-              setJawabanSingle(0);
-              setJawabanMulti([]);
+      <div className="max-w-5xl mx-auto space-y-6">
+        <div className="flex justify-between">
+          <button
+            onClick={() => {
+              window.location.href = "/dashboard";
             }}
           >
-            <option value="multiple_choice_single">Pilihan Ganda (Single)</option>
-            <option value="multiple_choice_multi">Pilihan Ganda (Multi)</option>
-            <option value="true_false">True / False</option>
-          </select>
-
-          <textarea
-            className="border p-2 w-full"
-            placeholder="Pertanyaan"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-          />
-
-          {tipe !== "true_false" &&
-            opsi.map((o, i) => (
-              <input
-                key={i}
-                className="border p-2 w-full"
-                placeholder={`Opsi ${i + 1}`}
-                value={o}
-                onChange={(e) => {
-                  const copy = [...opsi];
-                  copy[i] = e.target.value;
-                  setOpsi(copy);
-                }}
-              />
-            ))}
-
-          {tipe === "multiple_choice_single" && (
-            <select
-              className="border p-2 w-full"
-              value={jawabanSingle}
-              onChange={(e) => setJawabanSingle(Number(e.target.value))}
-            >
-              {opsi.map((_, i) => (
-                <option key={i} value={i}>Jawaban {i + 1}</option>
-              ))}
-            </select>
-          )}
-
-          {tipe === "multiple_choice_multi" &&
-            opsi.map((o, i) =>
-              o.trim() ? (
-                <label key={i} className="flex gap-2">
-                  <input
-                    type="checkbox"
-                    checked={jawabanMulti.includes(i)}
-                    onChange={() =>
-                      setJawabanMulti(prev =>
-                        prev.includes(i)
-                          ? prev.filter(x => x !== i)
-                          : [...prev, i]
-                      )
-                    }
-                  />
-                  {o}
-                </label>
-              ) : null
-            )
-          }
-
-          {tipe === "true_false" && (
-            <select
-              className="border p-2 w-full"
-              value={jawabanSingle}
-              onChange={(e) => setJawabanSingle(Number(e.target.value))}
-            >
-              <option value={1}>Benar</option>
-              <option value={0}>Salah</option>
-            </select>
-          )}
-
-          <input
-            type="number"
-            className="border p-2 w-full"
-            placeholder="Batas waktu soal (detik)"
-            value={batasWaktu}
-            onChange={(e) => setBatasWaktu(e.target.value)}
-          />
+            ← Kembali
+          </button>
 
           <button
-            onClick={addQuestion}
-            className="bg-blue-700 text-white px-4 py-2 rounded flex gap-2"
+            onClick={saveQuiz}
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded"
           >
-            <FaPlus /> Tambah Soal
+            Simpan
           </button>
         </div>
 
-        {/* LIST */}
-        <div className="space-y-2">
-          {questions.map((q, i) => (
-            <div key={q.id} className="border p-3 rounded flex justify-between">
-              <div>
-                {i + 1}. {q.pertanyaan}{" "}
-                <span className="text-xs text-gray-500">
-                  ({q.tipe_pertanyaan})
-                </span>
-              </div>
-              <button
-                className="text-red-600"
-                onClick={() =>
-                  setQuestions(x => x.filter((_, idx) => idx !== i))
-                }
-              >
-                <FaTrash />
-              </button>
-            </div>
-          ))}
-        </div>
+        {/* QUIZ SETTINGS */}
+        <QuizSettings
+          judul={judul}
+          setJudul={setJudul}
+          totalWaktu={totalWaktu}
+          setTotalWaktu={setTotalWaktu}
+          showAnswer={showAnswer}
+          setShowAnswer={setShowAnswer}
+          showRank={showRank}
+          setShowRank={setShowRank}
+        />
 
-        <button
-          onClick={saveQuiz}
-          className="bg-green-600 text-white px-6 py-3 rounded"
-        >
-          Simpan Kuis
-        </button>
+        {/* ADD QUESTION */}
+        <QuestionForm
+          tipe={tipe}
+          setTipe={setTipe}
+          text={text}
+          setText={setText}
+          imageUrl={imageUrl}
+          setImageUrl={setImageUrl}
+          mathEq={mathEq}
+          setMathEq={setMathEq}
+          opsi={opsi}
+          setOpsi={setOpsi}
+          matchingPairs={matchingPairs}
+          setMatchingPairs={setMatchingPairs}
+          jawabanSingle={jawabanSingle}
+          setJawabanSingle={setJawabanSingle}
+          jawabanMulti={jawabanMulti}
+          setJawabanMulti={setJawabanMulti}
+          batasWaktu={batasWaktu}
+          setBatasWaktu={setBatasWaktu}
+          editingIndex={editingIndex}
+          addQuestion={addQuestion}
+        />
+
+        {/* QUESTION LIST */}
+        <QuestionList
+          questions={questions}
+          setQuestions={setQuestions}
+          setMatchingPairs={setMatchingPairs}
+          setEditingIndex={setEditingIndex}
+          setTipe={setTipe}
+          setText={setText}
+          setImageUrl={setImageUrl}
+          setMathEq={setMathEq}
+          setBatasWaktu={setBatasWaktu}
+          setJawabanSingle={setJawabanSingle}
+          setJawabanMulti={setJawabanMulti}
+          setOpsi={setOpsi}
+        />
+
+
+
       </div>
     </ProtectedLayout>
   );

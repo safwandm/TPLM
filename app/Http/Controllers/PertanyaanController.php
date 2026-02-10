@@ -6,193 +6,173 @@ use Illuminate\Http\Request;
 use App\Models\Kuis;
 use App\Models\Pertanyaan;
 
-class KuisController extends Controller
+class PertanyaanController extends Controller
 {
-    /* ================= LIST KUIS ================= */
-    public function index(Request $request)
-    {
-        $kuis = Kuis::where('creator_id', $request->user()->id)
-            ->withCount('pertanyaan')
-            ->with('kuisAktif')
-            ->get();
-
-        return response()->json($kuis);
-    }
-
-    /* ================= DETAIL ================= */
-    public function show(Request $request, $id)
-    {
-        $kuis = Kuis::with('pertanyaan')
-            ->where('id', $id)
-            ->where('creator_id', $request->user()->id)
-            ->firstOrFail();
-
-        return response()->json($kuis);
-    }
-
-    /* ================= CREATE KUIS ONLY ================= */
+    /* ================= CREATE QUESTION ================= */
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'judul' => 'required|string',
-            'total_waktu' => 'nullable|integer',
-            'tampilkan_jawaban_benar' => 'boolean',
-            'tampilkan_peringkat' => 'boolean',
-            'teks_waiting_room' => 'nullable|string',
-            'teks_penutup' => 'nullable|string',
+            'kuis_id' => 'required|exists:kuis,id',
+            'tipe_pertanyaan' => 'required|string',
+            'pertanyaan' => 'required|string',
+            'opsi' => 'nullable',
+            'jawaban_benar' => 'required',
 
-            'mode' => 'nullable|in:classic,game',
-            'hp_awal' => 'nullable|integer|min:1',
+            'url_gambar' => 'nullable|string',
+            'url_video' => 'nullable|string',
+            'url_audio' => 'nullable|string',
+            'persamaan_matematika' => 'nullable|string',
+            'batas_waktu' => 'nullable|integer',
+
+            'skor' => 'nullable|integer|min:1',
+            'skor_bonus_waktu' => 'nullable|integer|min:1',
         ]);
 
-        $mode = $validated['mode'] ?? 'classic';
+        /* ================= SAFETY: ANSWER RULES ================= */
 
-        if ($mode === 'game') {
-            $hp_awal = $validated['hp_awal'] ?? config('quiz.starting_hp', 3);
-        } else {
-            $hp_awal = null;
+        // enforce single answer for certain types
+        if (
+            in_array($validated['tipe_pertanyaan'], ['multiple_choice_single', 'true_false']) &&
+            is_array($validated['jawaban_benar']) &&
+            count($validated['jawaban_benar']) !== 1
+        ) {
+            return response()->json([
+                'message' => 'Tipe ini hanya boleh satu jawaban benar'
+            ], 422);
         }
 
-        $kuis = Kuis::create([
-            'creator_id' => $request->user()->id,
-            'judul' => $validated['judul'],
-            'mode' => $mode,
-            'hp_awal' => $hp_awal,
-            'total_waktu' => $validated['total_waktu'] ?? null,
-            'tampilkan_jawaban_benar' => $validated['tampilkan_jawaban_benar'] ?? false,
-            'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false,
-            'teks_waiting_room' => $validated['teks_waiting_room'] ?? null,
-            'teks_penutup' => $validated['teks_penutup'] ?? null,
-        ]);
+        // prevent correct answer pointing to empty option (ONLY for list-based opsi)
+        if (
+            !empty($validated['opsi']) &&
+            is_array($validated['opsi']) &&
+            array_is_list($validated['opsi']) && // <-- ensures this is NOT matching
+            is_array($validated['jawaban_benar'])
+        ) {
 
-        return response()->json($kuis, 201);
-    }
+            foreach ($validated['jawaban_benar'] as $idx) {
 
-    /* ================= CREATE KUIS + QUESTIONS ================= */
-    public function storeWithQuestions(Request $request)
-    {
-        $validated = $request->validate([
-            'judul' => 'required|string',
-            'total_waktu' => 'nullable|integer',
-            'tampilkan_jawaban_benar' => 'boolean',
-            'tampilkan_peringkat' => 'boolean',
-            'teks_waiting_room' => 'nullable|string',
-            'teks_penutup' => 'nullable|string',
+                if (!isset($validated['opsi'][$idx]) || trim((string)$validated['opsi'][$idx]) === '') {
 
-            'mode' => 'nullable|in:classic,game',
-            'hp_awal' => 'nullable|integer|min:1',
-
-            'pertanyaan' => 'required|array',
-
-            'pertanyaan.*.tipe_pertanyaan' => 'required|string',
-            'pertanyaan.*.pertanyaan' => 'required|string',
-            'pertanyaan.*.opsi' => 'nullable',
-            'pertanyaan.*.jawaban_benar' => 'required',
-
-            'pertanyaan.*.url_gambar' => 'nullable|string',
-            'pertanyaan.*.url_video' => 'nullable|string',
-            'pertanyaan.*.url_audio' => 'nullable|string',
-            'pertanyaan.*.persamaan_matematika' => 'nullable|string',
-            'pertanyaan.*.batas_waktu' => 'nullable|integer',
-
-            'pertanyaan.*.skor' => 'nullable|integer|min:1',
-            'pertanyaan.*.skor_bonus_waktu' => 'nullable|integer|min:1',
-        ]);
-
-        /* ================= MODE HANDLING ================= */
-        $mode = $validated['mode'] ?? 'classic';
-
-        if ($mode === 'game') {
-            $hp_awal = $validated['hp_awal'] ?? config('quiz.starting_hp', 3);
-        } else {
-            $hp_awal = null;
+                    return response()->json([
+                        'message' => "Jawaban menunjuk ke opsi kosong"
+                    ], 422);
+                }
+            }
         }
 
-        $kuis = Kuis::create([
-            'creator_id' => $request->user()->id,
-            'judul' => $validated['judul'],
+        // auto order
+        $nextOrder = Pertanyaan::where('kuis_id', $validated['kuis_id'])
+            ->max('urutan');
 
-            // mode quiz
-            'mode' => $mode,
-            'hp_awal' => $mode === 'game'
-                ? ($validated['hp_awal'] ?? config('quiz.starting_hp'))
-                : null,
+        $validated['urutan'] = ($nextOrder ?? 0) + 1;
 
-            // waktu & tampilan
-            'total_waktu' => $validated['total_waktu'] ?? null,
-            'tampilkan_jawaban_benar' => $validated['tampilkan_jawaban_benar'] ?? false,
-            'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false,
+        $pertanyaan = Pertanyaan::createValidated($validated);
 
-            // teks opsional
-            'teks_waiting_room' => $validated['teks_waiting_room'] ?? null,
-            'teks_penutup' => $validated['teks_penutup'] ?? null,
-
-            // skor (dari main)
-            'skor' => $validated['skor'] ?? config('quiz.base_score'),
-            'skor_bonus_waktu' => $validated['skor_bonus_waktu'] ?? config('quiz.time_bonus_score'),
-        ]);
-
-
-        /* ================= CREATE QUESTIONS ================= */
-        foreach ($validated['pertanyaan'] as $index => $p) {
-            Pertanyaan::createValidated([
-                'kuis_id' => $kuis->id,
-                'urutan' => $index + 1,
-
-                'tipe_pertanyaan' => $p['tipe_pertanyaan'],
-                'pertanyaan' => $p['pertanyaan'],
-                'opsi' => $p['opsi'] ?? null,
-                'jawaban_benar' => $p['jawaban_benar'],
-
-                'url_gambar' => $p['url_gambar'] ?? null,
-                'url_video' => $p['url_video'] ?? null,
-                'url_audio' => $p['url_audio'] ?? null,
-                'persamaan_matematika' => $p['persamaan_matematika'] ?? null,
-                'batas_waktu' => $p['batas_waktu'] ?? null,
-
-                'skor' => $p['skor'] ?? null,
-                'skor_bonus_waktu' => $p['skor_bonus_waktu'] ?? null,
-            ]);
-        }
-
-        return response()->json([
-            'message' => 'Kuis dan pertanyaan berhasil dibuat',
-            'kuis' => $kuis->load('pertanyaan'),
-        ], 201);
+        return response()->json($pertanyaan, 201);
     }
 
     /* ================= UPDATE ================= */
     public function update(Request $request, $id)
     {
-        $kuis = Kuis::findOrFail($id);
+        $pertanyaan = Pertanyaan::findOrFail($id);
 
         $validated = $request->validate([
-            'judul' => 'sometimes|string',
-            'total_waktu' => 'nullable|integer',
-            'tampilkan_jawaban_benar' => 'boolean',
-            'tampilkan_peringkat' => 'boolean',
-            'teks_waiting_room' => 'nullable|string',
-            'teks_penutup' => 'nullable|string',
+            'tipe_pertanyaan' => 'sometimes|string',
+            'pertanyaan' => 'sometimes|string',
+            'opsi' => 'nullable',
+            'jawaban_benar' => 'sometimes',
 
-            'mode' => 'nullable|in:classic,game',
-            'hp_awal' => 'nullable|integer|min:1',
+            'url_gambar' => 'nullable|string',
+            'url_video' => 'nullable|string',
+            'url_audio' => 'nullable|string',
+            'persamaan_matematika' => 'nullable|string',
+            'batas_waktu' => 'nullable|integer',
+
+            'skor' => 'nullable|integer|min:1',
+            'skor_bonus_waktu' => 'nullable|integer|min:1',
         ]);
 
-        if (($validated['mode'] ?? $kuis->mode) === 'classic') {
-            $validated['hp_awal'] = null;
+
+        /* ================= SAFETY: ANSWER RULES ================= */
+
+        if (
+            isset($validated['tipe_pertanyaan']) &&
+            in_array($validated['tipe_pertanyaan'], ['multiple_choice_single', 'true_false']) &&
+            isset($validated['jawaban_benar']) &&
+            is_array($validated['jawaban_benar']) &&
+            count($validated['jawaban_benar']) !== 1
+        ) {
+            return response()->json([
+                'message' => 'Tipe ini hanya boleh satu jawaban benar'
+            ], 422);
         }
 
-        $kuis->update($validated);
+        if (
+            isset($validated['opsi']) &&
+            is_array($validated['opsi']) &&
+            array_is_list($validated['opsi']) && // ensures this is NOT matching
+            isset($validated['jawaban_benar']) &&
+            is_array($validated['jawaban_benar'])
+        ) {
 
-        return response()->json($kuis);
+            foreach ($validated['jawaban_benar'] as $idx) {
+
+                if (!isset($validated['opsi'][$idx]) || trim((string)$validated['opsi'][$idx]) === '') {
+                    return response()->json([
+                        'message' => "Jawaban menunjuk ke opsi kosong"
+                    ], 422);
+                }
+            }
+        }
+
+        /* ================= OPTIONAL: ORDER SWAP ================= */
+
+        if ($request->has('urutan')) {
+
+            $newOrder = $request->urutan;
+            $oldOrder = $pertanyaan->urutan;
+            $kuisId   = $pertanyaan->kuis_id;
+
+            if ($newOrder !== $oldOrder) {
+
+                $other = Pertanyaan::where('kuis_id', $kuisId)
+                    ->where('urutan', $newOrder)
+                    ->first();
+
+                if ($other) {
+                    $other->update(['urutan' => $oldOrder]);
+                }
+
+                $validated['urutan'] = $newOrder;
+            }
+        }
+
+        $pertanyaan->updateValidated($validated);
+
+        return response()->json($pertanyaan);
     }
 
     /* ================= DELETE ================= */
     public function destroy($id)
     {
-        $kuis = Kuis::findOrFail($id);
-        $kuis->delete();
+        $pertanyaan = Pertanyaan::findOrFail($id);
+        $kuisId = $pertanyaan->kuis_id;
 
-        return response()->json(['message' => 'Kuis dihapus']);
+        $pertanyaan->delete();
+
+        // re-order questions
+        $pertanyaans = Pertanyaan::where('kuis_id', $kuisId)
+            ->orderBy('urutan')
+            ->get();
+
+        $urut = 1;
+        foreach ($pertanyaans as $p) {
+            if ($p->urutan != $urut) {
+                $p->update(['urutan' => $urut]);
+            }
+            $urut++;
+        }
+
+        return response()->json(['message' => 'Pertanyaan dihapus & urutan diperbarui']);
     }
 }

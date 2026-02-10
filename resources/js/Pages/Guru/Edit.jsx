@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import webFetch from "@/lib/webFetch";
 import { WebAPI } from "@/lib/api.web";
-import { FaPlus, FaTrash } from "react-icons/fa";
+import QuestionForm from "@/Components/QuestionForm";
+import QuestionList from "@/Components/QuestionList";
+import QuizSettings from "@/Components/QuizSettings";
 
 export default function EditQuiz({ quizId }) {
   const editRef = useRef(null);
@@ -23,7 +25,13 @@ export default function EditQuiz({ quizId }) {
   const [editingId, setEditingId] = useState(null);
   const [tipe, setTipe] = useState("multiple_choice_single");
   const [text, setText] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
+  const [mathEq, setMathEq] = useState("");
   const [opsi, setOpsi] = useState(["", "", "", ""]);
+  const [matchingPairs, setMatchingPairs] = useState([
+    { kiri: "", kanan: "" },
+    { kiri: "", kanan: "" },
+  ]);
   const [jawabanSingle, setJawabanSingle] = useState(0);
   const [jawabanMulti, setJawabanMulti] = useState([]);
   const [batasWaktu, setBatasWaktu] = useState("");
@@ -43,6 +51,9 @@ export default function EditQuiz({ quizId }) {
     webFetch(WebAPI.teacher.quiz(quizId))
       .then((r) => r.json())
       .then((data) => {
+
+        console.log("Fetched Quiz Data:", data);
+
         setJudul(data.judul);
         setTotalWaktu(data.total_waktu ?? "");
         setShowAnswer(data.tampilkan_jawaban_benar);
@@ -56,6 +67,8 @@ export default function EditQuiz({ quizId }) {
             opsi: p.opsi,
             jawaban_benar: p.jawaban_benar,
             batas_waktu: p.batas_waktu,
+            url_gambar: p.url_gambar,
+            persamaan_matematika: p.persamaan_matematika,
           }))
         );
       });
@@ -66,78 +79,89 @@ export default function EditQuiz({ quizId }) {
     setEditingId(null);
     setTipe("multiple_choice_single");
     setText("");
+    setImageUrl("");
+    setMathEq("");
     setOpsi(["", "", "", ""]);
     setJawabanSingle(0);
     setJawabanMulti([]);
     setBatasWaktu("");
+    setMatchingPairs([
+      { kiri: "", kanan: "" },
+      { kiri: "", kanan: "" },
+    ]);
   }
 
-  function startEdit(q) {
-    setEditingId(q.id);
-    setTipe(q.tipe_pertanyaan);
-    setText(q.pertanyaan);
-    setBatasWaktu(q.batas_waktu ?? "");
-
-    if (q.tipe_pertanyaan === "true_false") {
-      setJawabanSingle(q.jawaban_benar[0] ? 1 : 0);
-      setOpsi(["", "", "", ""]);
-      setJawabanMulti([]);
-    } 
-    else if (q.tipe_pertanyaan === "multiple_choice_multi") {
-      setOpsi(q.opsi);
-      setJawabanMulti(q.jawaban_benar);
-    } 
-    else {
-      setOpsi(q.opsi);
-      setJawabanSingle(q.jawaban_benar[0]);
-      setJawabanMulti([]);
-    }
-
-    editRef.current?.scrollIntoView({ behavior: "smooth" });
-  }
 
   /* ================= SUBMIT ================= */
   function submitQuestion() {
+    console.log("SUBMIT editingId:", editingId);
     if (!text.trim()) return alert("Pertanyaan wajib diisi");
 
     let payload = {
       tipe_pertanyaan: tipe,
       pertanyaan: text,
+      url_gambar: imageUrl || null,
+      persamaan_matematika: mathEq || null,
       batas_waktu: batasWaktu ? Number(batasWaktu) : null,
     };
 
     if (tipe === "true_false") {
       payload.opsi = null;
       payload.jawaban_benar = Boolean(jawabanSingle);
-    } 
+    }
     else if (tipe === "multiple_choice_multi") {
       payload.opsi = opsi.filter(o => o.trim());
       payload.jawaban_benar = jawabanMulti;
-    } 
+    }
+    else if (tipe === "ordering") {
+      const cleaned = opsi.filter(o => o.trim());
+      payload.opsi = cleaned;
+      payload.jawaban_benar = cleaned.map((_, i) => i);
+    }
+    else if (tipe === "matching") {
+      const kiri = matchingPairs.map(p => p.kiri).filter(Boolean);
+      const kanan = matchingPairs.map(p => p.kanan).filter(Boolean);
+
+      payload.opsi = { kiri, kanan };
+
+      payload.jawaban_benar = kiri.map((_, i) => i);
+    }
     else {
       payload.opsi = opsi.filter(o => o.trim());
       payload.jawaban_benar = jawabanSingle;
     }
 
-    if (editingId) {
-      updatedRef.current.set(editingId, payload);
-      setQuestions(qs =>
-        qs.map(q => q.id === editingId ? { ...q, ...payload } : q)
-      );
+    const isEditing = editingId !== null && editingId !== undefined;
+
+    if (isEditing) {
+      updatedRef.current.set(questions[editingId].id, payload);
+
+      console.log("Updating question ID:", editingId, "with payload:", payload);
+
+      setQuestions(prev => {
+        const copy = [...prev];
+        copy[editingId] = { ...payload, id: prev[editingId].id };
+        return copy;
+      });
+
+      console.log("Questions after update:", questions);
     } else {
       const tempId = `temp-${Date.now()}`;
       addedRef.current.push({ ...payload, kuis_id: quizId });
+      console.log("Adding new question with temp ID:", tempId, "and payload:", payload);
 
       setQuestions(qs => [...qs, { id: tempId, ...payload }]);
+
+      console.log("Questions after addition:", questions);
+
     }
 
     resetForm();
   }
 
   /* ================= DELETE ================= */
-  function deleteQuestion(id) {
-    if (!confirm("Hapus soal?")) return;
-
+  function deleteQuestion(index) {
+    const id = questions[index].id;
     if (String(id).startsWith("temp-")) {
       addedRef.current = addedRef.current.filter(q => q.id !== id);
     } else {
@@ -151,6 +175,12 @@ export default function EditQuiz({ quizId }) {
   /* ================= SAVE ================= */
   async function saveQuiz() {
     try {
+
+      console.log("Quiz Id:", quizId);
+      console.log("Questions to add:", addedRef.current);
+      console.log("Questions to update:", Array.from(updatedRef.current.entries()));
+      console.log("Questions to delete:", Array.from(deletedRef.current.values()));
+
       /* QUIZ */
       await webFetch(WebAPI.teacher.quiz(quizId), {
         method: "PUT",
@@ -165,32 +195,48 @@ export default function EditQuiz({ quizId }) {
 
       /* DELETE */
       for (const id of deletedRef.current) {
-        await webFetch(WebAPI.teacher.question(id), {
+        const res = await webFetch(WebAPI.teacher.question(id), {
           method: "DELETE",
           headers: { "X-XSRF-TOKEN": getCsrfToken() },
         });
+        if (!res.ok) {
+          console.error(await res.text());
+          console.log("Failed to delete question ID:", id);
+          throw new Error("Failed to delete question");
+        }
       }
 
       /* UPDATE */
       for (const [id, payload] of updatedRef.current.entries()) {
-        await webFetch(WebAPI.teacher.question(id), {
+        const res = await webFetch(WebAPI.teacher.question(id), {
           method: "PUT",
           headers: { "X-XSRF-TOKEN": getCsrfToken() },
           body: JSON.stringify(payload),
         });
+        console.log(WebAPI.teacher.question(id));
+        if (!res.ok) {
+          console.error(await res.text());
+          console.log("Failed to update question ID:", id);
+          throw new Error("Failed to update question");
+        }
       }
 
       /* ADD */
       for (const q of addedRef.current) {
-        await webFetch(WebAPI.teacher.createQuestion, {
+        const res = await webFetch(WebAPI.teacher.createQuestion, {
           method: "POST",
           headers: { "X-XSRF-TOKEN": getCsrfToken() },
           body: JSON.stringify(q),
         });
+        if (!res.ok) {
+          console.error(await res.text());
+          console.log("Failed to create question:", q);
+          throw new Error("Failed to create question");
+        }
       }
 
-      alert("Perubahan disimpan");
-      window.location.href = "/dashboard";
+      // alert("Perubahan disimpan");
+      // window.location.href = "/dashboard";
     } catch (e) {
       console.error(e);
       alert("Gagal menyimpan perubahan");
@@ -200,84 +246,75 @@ export default function EditQuiz({ quizId }) {
   /* ================= UI ================= */
   return (
     <ProtectedLayout allowedRoles={["teacher"]}>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6">
 
         <div className="flex justify-between">
-          <button onClick={() => window.history.back()}>← Kembali</button>
+          <button
+            onClick={() => {
+              window.location.href = "/dashboard";
+            }}
+          >
+            ← Kembali
+          </button>
           <button onClick={saveQuiz} className="bg-green-600 text-white px-4 py-2 rounded">
             Simpan
           </button>
         </div>
 
         {/* QUIZ */}
-        <div className="bg-white p-4 rounded shadow space-y-3">
-          <input className="border p-2 w-full" value={judul} onChange={e => setJudul(e.target.value)} />
-          <input type="number" className="border p-2 w-full" value={totalWaktu} onChange={e => setTotalWaktu(e.target.value)} />
-        </div>
+        <QuizSettings
+          judul={judul}
+          setJudul={setJudul}
+          totalWaktu={totalWaktu}
+          setTotalWaktu={setTotalWaktu}
+          showAnswer={showAnswer}
+          setShowAnswer={setShowAnswer}
+          showRank={showRank}
+          setShowRank={setShowRank}
+        />
 
         {/* FORM */}
-        <div ref={editRef} className="bg-white p-4 rounded shadow space-y-3">
-          <select value={tipe} onChange={e => setTipe(e.target.value)} className="border p-2 w-full">
-            <option value="multiple_choice_single">Single</option>
-            <option value="multiple_choice_multi">Multi</option>
-            <option value="true_false">True / False</option>
-          </select>
-
-          <textarea className="border p-2 w-full" value={text} onChange={e => setText(e.target.value)} />
-
-          {tipe !== "true_false" &&
-            opsi.map((o, i) => (
-              <input key={i} className="border p-2 w-full" value={o}
-                onChange={e => {
-                  const c = [...opsi];
-                  c[i] = e.target.value;
-                  setOpsi(c);
-                }} />
-            ))}
-
-          {tipe === "multiple_choice_single" && (
-            <select className="border p-2 w-full" value={jawabanSingle} onChange={e => setJawabanSingle(Number(e.target.value))}>
-              {opsi.map((_, i) => <option key={i} value={i}>Jawaban {i + 1}</option>)}
-            </select>
-          )}
-
-          {tipe === "multiple_choice_multi" &&
-            opsi.map((o, i) => o.trim() && (
-              <label key={i} className="flex gap-2">
-                <input type="checkbox"
-                  checked={jawabanMulti.includes(i)}
-                  onChange={() =>
-                    setJawabanMulti(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i])
-                  }
-                />
-                {o}
-              </label>
-            ))}
-
-          {tipe === "true_false" && (
-            <select className="border p-2 w-full" value={jawabanSingle} onChange={e => setJawabanSingle(Number(e.target.value))}>
-              <option value={1}>Benar</option>
-              <option value={0}>Salah</option>
-            </select>
-          )}
-
-          <button onClick={submitQuestion} className="bg-blue-700 text-white px-4 py-2 rounded flex gap-2">
-            <FaPlus /> {editingId ? "Update Soal" : "Tambah Soal"}
-          </button>
+        <div ref={editRef}>
+          <QuestionForm
+            tipe={tipe}
+            setTipe={setTipe}
+            text={text}
+            setText={setText}
+            imageUrl={imageUrl}
+            setImageUrl={setImageUrl}
+            mathEq={mathEq}
+            setMathEq={setMathEq}
+            opsi={opsi}
+            setOpsi={setOpsi}
+            matchingPairs={matchingPairs}
+            setMatchingPairs={setMatchingPairs}
+            jawabanSingle={jawabanSingle}
+            setJawabanSingle={setJawabanSingle}
+            jawabanMulti={jawabanMulti}
+            setJawabanMulti={setJawabanMulti}
+            batasWaktu={batasWaktu}
+            setBatasWaktu={setBatasWaktu}
+            editingIndex={editingId}
+            addQuestion={submitQuestion}
+          />
         </div>
 
         {/* LIST */}
-        {questions.map((q, i) => (
-          <div key={q.id} className="border p-3 rounded flex justify-between">
-            <div>{i + 1}. {q.pertanyaan} ({q.tipe_pertanyaan})</div>
-            <div className="flex gap-3">
-              <button onClick={() => startEdit(q)}>Edit</button>
-              <button onClick={() => deleteQuestion(q.id)} className="text-red-600">
-                <FaTrash />
-              </button>
-            </div>
-          </div>
-        ))}
+        <QuestionList
+          questions={questions}
+          setQuestions={setQuestions}
+          setMatchingPairs={setMatchingPairs}
+          setEditingIndex={setEditingId}
+          setTipe={setTipe}
+          setText={setText}
+          setImageUrl={setImageUrl}
+          setMathEq={setMathEq}
+          setBatasWaktu={setBatasWaktu}
+          setJawabanSingle={setJawabanSingle}
+          setJawabanMulti={setJawabanMulti}
+          setOpsi={setOpsi}
+          onDelete={deleteQuestion}
+        />
       </div>
     </ProtectedLayout>
   );
