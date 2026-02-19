@@ -17,7 +17,9 @@ class SesiKuis extends Model
         'nomor_pertanyaan_sekarang',
         'dimulai_pada',
         'berakhir_pada',
+        'teks_waiting_room'
     ];
+
 
     public function kuis()
     {

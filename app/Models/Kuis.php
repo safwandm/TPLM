@@ -34,4 +34,12 @@ class Kuis extends Model
             ->where('status', '!=', 'finished')
             ->latest('created_at');
     }
+
+    public function latestSesi()
+    {
+        return $this->hasOne(\App\Models\SesiKuis::class)
+            ->latestOfMany();
+    }
+
+
 }

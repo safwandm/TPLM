@@ -20,6 +20,10 @@ export default function Dashboard() {
     const [error, setError] = useState(null);
     const [loadingId, setLoadingId] = useState(null);
 
+    const [showTextModal, setShowTextModal] = useState(false);
+    const [waitingText, setWaitingText] = useState("");
+    const [selectedQuizId, setSelectedQuizId] = useState(null);
+
     /* =====================================
        FETCH QUIZZES
     ===================================== */
@@ -36,6 +40,7 @@ export default function Dashboard() {
 
                 const data = await res.json();
                 setQuizzes(data);
+                console.log("DATA QUIZZES:", data);
             } catch (err) {
                 console.error("Fetch quiz error:", err);
                 setError("Gagal memuat data kuis");
@@ -65,6 +70,8 @@ export default function Dashboard() {
 
     async function handleStart(kuisId) {
 
+        const teks = prompt("Masukkan teks apresiasi / doa sebelum kuis dimulai (opsional):");
+
         setLoadingId(kuisId);
 
         try {
@@ -75,6 +82,7 @@ export default function Dashboard() {
                 method: "POST",
                 body: JSON.stringify({
                     kuis_id: kuisId,
+                    teks_waiting_room: teks || null
                 }),
             });
 
@@ -85,7 +93,6 @@ export default function Dashboard() {
             }
 
             const data = await res.json();
-
             window.location.href = `/sesi/${data.sesi.id}`;
 
         } catch (err) {
@@ -96,9 +103,21 @@ export default function Dashboard() {
         }
     }
 
-    function handleExport() {
-        alert("Exported quiz (mock)");
+
+
+    function handleExport(sesiId) {
+    if (!sesiId) {
+        alert("Kuis ini belum pernah dijalankan.");
+        return;
     }
+
+    window.open(
+        `/web/teacher/export/sesi/${sesiId}/csv`,
+        "_blank"
+    );
+    }
+
+
 
     async function handleDelete(id) {
 
@@ -255,9 +274,23 @@ export default function Dashboard() {
                                         </button>
                                     )}
 
-                                    <button onClick={handleExport} title="Export">
+                                    <button
+                                        onClick={() => {
+                                            const sesiId = q.latest_sesi?.id;
+
+                                            if (!sesiId) {
+                                                alert("Kuis ini belum pernah dijalankan.");
+                                                return;
+                                            }
+
+                                            handleExport(sesiId);
+                                        }}
+                                        title="Export Hasil Kuis"
+                                    >
                                         <FaFileAlt />
                                     </button>
+
+
 
                                     <button onClick={() => handleDelete(q.id)} title="Hapus kuis">
                                         <FaTrash />

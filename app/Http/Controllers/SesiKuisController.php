@@ -61,7 +61,12 @@ class SesiKuisController extends Controller
     {
         $request->validate([
             'kuis_id' => 'required|exists:kuis,id',
+            'teks_waiting_room' => 'nullable|string'
         ]);
+        \Log::info("TEKS WAITING ROOM DARI FRONTEND:", [
+            'teks' => $request->teks_waiting_room
+        ]);
+
 
         $user = $request->user();
 
@@ -80,6 +85,7 @@ class SesiKuisController extends Controller
             'status' => 'waiting',
             'tampilkan_jawaban_benar' => $kuis->tampilkan_jawaban_benar,
             'tampilkan_peringkat' => $kuis->tampilkan_peringkat,
+            'teks_waiting_room' => $request->teks_waiting_room,
         ]);
 
         return response()->json([
