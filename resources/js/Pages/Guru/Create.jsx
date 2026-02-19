@@ -12,6 +12,8 @@ export default function CreateQuiz() {
   const [totalWaktu, setTotalWaktu] = useState("");
   const [showAnswer, setShowAnswer] = useState(true);
   const [showRank, setShowRank] = useState(true);
+  const [waitingText, setWaitingText] = useState("");
+
 
   /* ================= QUESTIONS ================= */
   const [questions, setQuestions] = useState([]);
@@ -116,6 +118,7 @@ export default function CreateQuiz() {
       total_waktu: totalWaktu ? Number(totalWaktu) : null,
       tampilkan_jawaban_benar: showAnswer,
       tampilkan_peringkat: showRank,
+      teks_waiting_room: waitingText,
       pertanyaan: questions.map(q => ({
         tipe_pertanyaan: q.tipe_pertanyaan,
         pertanyaan: q.pertanyaan,

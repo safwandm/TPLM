@@ -20,6 +20,8 @@ export default function EditQuiz({ quizId }) {
   const [showAnswer, setShowAnswer] = useState(true);
   const [showRank, setShowRank] = useState(true);
   const [questions, setQuestions] = useState([]);
+  const [waitingText, setWaitingText] = useState("");
+
 
   /* ================= FORM ================= */
   const [editingId, setEditingId] = useState(null);
@@ -48,6 +50,8 @@ export default function EditQuiz({ quizId }) {
         setTotalWaktu(data.total_waktu ?? "");
         setShowAnswer(data.tampilkan_jawaban_benar);
         setShowRank(data.tampilkan_peringkat);
+        setWaitingText(data.teks_waiting_room || "");
+
 
         setQuestions(
           data.pertanyaan.map((p) => ({
@@ -162,6 +166,7 @@ export default function EditQuiz({ quizId }) {
           total_waktu: totalWaktu,
           tampilkan_jawaban_benar: showAnswer,
           tampilkan_peringkat: showRank,
+          teks_waiting_room: waitingText,
         }),
       });
 

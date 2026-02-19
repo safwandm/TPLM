@@ -48,6 +48,8 @@ export default function WaitingRoom({ id }) {
 
                 const data = await res.json();
 
+                console.log("DATA SESI:", data);
+                
                 setSesi(data);
                 setPesertaList(data.pesertas?.map(p => p.nama) || []);
 
@@ -134,6 +136,15 @@ export default function WaitingRoom({ id }) {
                         Jangan tutup halaman ini
                     </p>
                 </div>
+                {sesi?.teks_waiting_room && (
+                <div className="bg-blue-50 border border-blue-300 p-4 rounded mb-6 text-center">
+                    <p className="text-blue-700 font-medium">
+                    {sesi.teks_waiting_room}
+                    </p>
+                </div>
+                )}
+
+
 
                 <div className="bg-blue-50 border p-4 rounded mb-6">
                     <div className="flex justify-between text-sm">

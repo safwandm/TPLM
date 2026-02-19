@@ -8,15 +8,20 @@ use App\Models\Pertanyaan;
 
 class KuisController extends Controller
 {
+
     public function index(Request $request)
     {
         $kuis = Kuis::where('creator_id', $request->user()->id)
             ->withCount('pertanyaan')
-            ->with('kuisAktif')
+            ->with([
+                'kuisAktif',
+                'latestSesi'
+            ])
             ->get();
 
         return response()->json($kuis);
     }
+
 
     public function show(Request $request, $id)
     {
@@ -109,8 +114,9 @@ class KuisController extends Controller
                 : null,
             'tampilkan_jawaban_benar' => $validated['tampilkan_jawaban_benar'] ?? false,
             'tampilkan_peringkat' => $validated['tampilkan_peringkat'] ?? false,
-            'teks_waiting_room' => $validated['teks_waiting_room'] ?? false,
-            'teks_penutup' => $validated['teks_penutup'] ?? false,
+            'teks_waiting_room' => $validated['teks_waiting_room'] ?? null,
+            'teks_penutup' => $validated['teks_penutup'] ?? null,
+
         ]);
 
         foreach ($validated['pertanyaan'] as $index => $p) {
