@@ -1,8 +1,74 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import webFetch from "@/lib/webFetch";
 import { WebAPI } from "@/lib/api.web";
 import { ApiAPI } from "../../lib/api.api";
+
 import Leaderboard from "../../Components/Leaderboard";
+
+/* ================= SHUFFLE HELPERS ================= */
+function shuffleArray(array) {
+    if (!Array.isArray(array)) return array;
+    const copy = [...array];
+    for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
+    }
+    return copy;
+}
+
+function shuffleQuestionOptions(question) {
+    if (!question?.opsi) return question;
+
+    // Multiple choice + ordering
+    if (Array.isArray(question.opsi)) {
+
+        const original = question.opsi.map((text, index) => ({
+            text,
+            originalIndex: index,
+        }));
+
+        const shuffled = shuffleArray(original);
+
+        // map newIndex -> originalIndex (REVERSE MAP for submit)
+        const reverseMap = {};
+        shuffled.forEach((item, newIndex) => {
+            reverseMap[newIndex] = item.originalIndex;
+        });
+
+        return {
+            ...question,
+            opsi: shuffled.map(s => s.text),
+            _optionIndexMap: reverseMap,
+        };
+    }
+
+    // MATCHING → shuffle kanan only
+    if (question.tipe_pertanyaan === "matching" && question.opsi.kanan) {
+
+        const kananOriginal = question.opsi.kanan.map((text, index) => ({
+            text,
+            originalIndex: index,
+        }));
+
+        const kananShuffled = shuffleArray(kananOriginal);
+
+        const reverseMap = {};
+        kananShuffled.forEach((item, newIndex) => {
+            reverseMap[newIndex] = item.originalIndex;
+        });
+
+        return {
+            ...question,
+            opsi: {
+                ...question.opsi,
+                kanan: kananShuffled.map(k => k.text),
+            },
+            _optionIndexMap: reverseMap,
+        };
+    }
+
+    return question;
+}
 
 export default function StudentQuiz() {
     const peserta = JSON.parse(localStorage.getItem("peserta"));
@@ -32,6 +98,14 @@ export default function StudentQuiz() {
 
     /* ================= TIMER ================= */
     const [timeLeft, setTimeLeft] = useState(null);
+    const [dragIndex, setDragIndex] = useState(null);
+    // matchingPairs: { rightIndex -> leftIndex }
+    const [matchingPairs, setMatchingPairs] = useState({});
+    const [activeAnswer, setActiveAnswer] = useState(null);
+    const [activeQuestion, setActiveQuestion] = useState(null);
+    const leftRefs = useRef([]);
+    const rightRefs = useRef([]);
+    const containerRef = useRef(null);
 
     /* ================= SAFETY ================= */
     useEffect(() => {
@@ -39,6 +113,45 @@ export default function StudentQuiz() {
             window.location.href = "/";
         }
     }, []);
+
+    /* ================= RETURN TO TAB / BACK BUTTON ================= */
+    useEffect(() => {
+        const restoreState = async () => {
+            if (!sessionId || !peserta?.id) return;
+
+            try {
+                const res = await webFetch(
+                    WebAPI.session.restore(sessionId, peserta.id),
+                    { skipAuth: true }
+                );
+                if (!res.ok) return;
+
+                const data = await res.json();
+
+                if (data.status === "finished") {
+                    setQuizFinished(true);
+                    setFinalScore(data.final_score);
+                    return;
+                }
+
+                if (data.current_question) {
+                    const shuffled = shuffleQuestionOptions(data.current_question);
+                    setCurrentQuestion(shuffled);
+                    setTimeLeft(Math.floor(data.time_left));
+                    setStatus(data.answered ? "result" : "idle");
+                }
+            } catch {}
+        };
+
+        const handleShow = () => restoreState();
+
+        window.addEventListener("pageshow", handleShow);
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") handleShow();
+        });
+
+        return () => window.removeEventListener("pageshow", handleShow);
+    }, [sessionId]);
 
     /* ================= SOCKET ================= */
     useEffect(() => {
@@ -60,9 +173,11 @@ export default function StudentQuiz() {
 
         channel
             .listen(".QuestionStarted", (e) => {
-                setCurrentQuestion(e);
+                console.log("QuestionStarted event:", e);
+                const shuffled = shuffleQuestionOptions(e);
+                setCurrentQuestion(shuffled);
                 setQuestionIndex(p => p + 1);
-                resetState(e);
+                resetState(shuffled);
 
                 if (e.ends_at) {
                     const end = new Date(e.ends_at).getTime();
@@ -70,9 +185,11 @@ export default function StudentQuiz() {
                 }
             })
             .listen(".LeaderboardUpdated", (e) => {
+                console.log("LeaderboardUpdated event:", e);
                 setLeaderboard(e.leaderboard);
             })
             .listen(".SessionFinished", () => {
+                console.log("SessionFinished event");
                 const latest = JSON.parse(localStorage.getItem("peserta"));
                 setFinalScore(latest?.total_skor ?? 0);
                 setQuizFinished(true);
@@ -131,22 +248,31 @@ export default function StudentQuiz() {
                 return;
             }
 
-            setLeaderboard(data.leaderboard);
+            if (data.leaderboard?.length) {
+                setLeaderboard(data.leaderboard);
+            }
             setHp(data.hp_sisa);
             setQuestionIndex(data.current_question_number);
 
             if (data.current_question) {
-                setCurrentQuestion(data.current_question);
+                const shuffled = shuffleQuestionOptions(data.current_question);
+                setCurrentQuestion(shuffled);
                 setTimeLeft(Math.floor(data.time_left));
 
-                if (!data.answered && data.current_question.tipe_pertanyaan === "ordering") {
+                if (!data.answered && shuffled.tipe_pertanyaan === "ordering") {
                     setSelectedAnswer(
-                        data.current_question.opsi.map((_, i) => i)
+                        shuffled.opsi.map((_, i) => i)
                     );
                 }
 
                 if (data.answered) {
                     setSelectedAnswer(data.jawaban);
+                    const correct =
+                        data?.correctness ??
+                        data?.jawaban?.correctness ??
+                        null;
+
+                    setIsCorrect(correct === 1 || correct === true);
                     setStatus("result");
                 } else {
                     setStatus("idle");
@@ -163,10 +289,21 @@ export default function StudentQuiz() {
         setIsCorrect(null);
         setTimeoutPenaltyApplied(false);
 
-        // Prevent null answer for ordering questions
-        if (question?.tipe_pertanyaan === "ordering") {
+        if (!question) {
+            setSelectedAnswer(null);
+            return;
+        }
+
+        if (question.tipe_pertanyaan === "ordering") {
             setSelectedAnswer(question.opsi.map((_, i) => i));
-        } else {
+        } 
+        else if (question.tipe_pertanyaan === "matching") {
+            setMatchingPairs({});
+            setActiveAnswer(null);
+            setActiveQuestion(null);
+            setSelectedAnswer([]);
+        } 
+        else {
             setSelectedAnswer(null);
         }
     }
@@ -177,6 +314,26 @@ export default function StudentQuiz() {
         if (isGameMode && hp <= 0) return;
 
         setStatus("answered");
+
+        // --- BEGIN: Index remapping for shuffled options ---
+        let answerToSend = selectedAnswer;
+
+        // convert shuffled indices back to original indices
+        if (currentQuestion?._optionIndexMap) {
+
+            const map = currentQuestion._optionIndexMap;
+
+            if (Array.isArray(answerToSend)) {
+                answerToSend = answerToSend.map(i => map[i]);
+            } 
+            else if (typeof answerToSend === "number") {
+                answerToSend = map[answerToSend];
+            }
+            else if (currentQuestion.tipe_pertanyaan === "matching" && Array.isArray(answerToSend)) {
+                answerToSend = answerToSend.map(i => map[i]);
+            }
+        }
+        // --- END: Index remapping for shuffled options ---
 
         try {
             const res = await webFetch(
@@ -191,19 +348,27 @@ export default function StudentQuiz() {
                         peserta_id: peserta.id,
                         pertanyaan_id: currentQuestion.pertanyaan_id,
                         jawaban:
-                            selectedAnswer ??
-                            (currentQuestion.tipe_pertanyaan === "ordering"
+                            answerToSend !== null
+                                ? answerToSend
+                                : currentQuestion.tipe_pertanyaan === "ordering"
                                 ? currentQuestion.opsi.map((_, i) => i)
-                                : null),
+                                : null,
                     }),
                 }
             );
 
             const data = await res.json();
+            console.log("Submit Answer Response:", data);
             if (!res.ok) throw data;
 
             if (quizConfig.tampilkan_jawaban_benar) {
-                setIsCorrect(data.jawaban?.is_benar ?? null);
+                // backend usually returns correctness at root or inside jawaban
+                const correct =
+                    data?.correctness ??
+                    data?.jawaban?.correctness ??
+                    null;
+
+                setIsCorrect(correct === 1 || correct === true);
             }
 
             if (isGameMode && typeof data.hp_sisa === "number") {
@@ -332,32 +497,76 @@ export default function StudentQuiz() {
                 ? selectedAnswer
                 : currentQuestion.opsi.map((_, i) => i);
 
-        const swap = (a, b) => {
-            const arr = [...order];
-            [arr[a], arr[b]] = [arr[b], arr[a]];
-            setSelectedAnswer(arr);
+        const handleDragStart = (index) => {
+            setDragIndex(index);
+        };
+
+        const handleDragOver = (e, hoverIndex) => {
+            e.preventDefault();
+
+            if (dragIndex === null || dragIndex === hoverIndex) return;
+
+            const rect = e.currentTarget.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+
+            if (
+                (dragIndex < hoverIndex && e.clientY < midpoint) ||
+                (dragIndex > hoverIndex && e.clientY > midpoint)
+            ) {
+                return;
+            }
+
+            const newOrder = [...order];
+            const draggedItem = newOrder[dragIndex];
+
+            newOrder.splice(dragIndex, 1);
+            newOrder.splice(hoverIndex, 0, draggedItem);
+
+            setDragIndex(hoverIndex);
+            setSelectedAnswer(newOrder);
+        };
+
+        const handleDragEnd = () => {
+            setDragIndex(null);
         };
 
         return (
             <>
-                <div className="space-y-2">
+                <div className="space-y-4 w-full max-w-2xl">
                     {order.map((idx, i) => (
-                        <div key={idx} className="flex justify-between bg-gray-200 p-3 rounded">
-                            <span>{i + 1}. {currentQuestion.opsi[idx]}</span>
-                            <div className="flex gap-1">
-                                {i > 0 && (
-                                    <button onClick={() => swap(i, i - 1)}>↑</button>
-                                )}
-                                {i < order.length - 1 && (
-                                    <button onClick={() => swap(i, i + 1)}>↓</button>
-                                )}
+                        <div
+                            key={idx}
+                            draggable={status === "idle"}
+                            onDragStart={() => handleDragStart(i)}
+                            onDragOver={(e) => handleDragOver(e, i)}
+                            onDragEnd={handleDragEnd}
+                            className={`flex items-stretch rounded-xl border-2 transition-all duration-200
+                                ${dragIndex === i ? "border-blue-400 shadow-lg scale-[1.02]" : "border-gray-200"}
+                                ${status !== "idle" ? "opacity-60" : ""}
+                                bg-white`}
+                        >
+                            {/* Number block (like matching UI left index) */}
+                            <div className="flex items-center justify-center w-16 bg-green-400 text-white font-bold text-lg rounded-l-xl">
+                                {i + 1}
+                            </div>
+
+                            {/* Content block */}
+                            <div className="flex-1 p-4 flex items-center justify-between">
+                                <span className="font-medium">
+                                    {currentQuestion.opsi[idx]}
+                                </span>
+
+                                <span className="text-gray-400 text-sm">
+                                    ⠿ Drag
+                                </span>
                             </div>
                         </div>
                     ))}
                 </div>
 
                 <button
-                    className="mt-4 bg-blue-600 text-white px-6 py-2 rounded"
+                    className="mt-6 bg-blue-600 text-white px-6 py-2 rounded disabled:bg-gray-400"
+                    disabled={status !== "idle"}
                     onClick={submitAnswer}
                 >
                     Kirim Urutan
@@ -367,40 +576,240 @@ export default function StudentQuiz() {
     }
 
     function renderMatching() {
-        const kiri = currentQuestion.opsi.kiri;
-        const kanan = currentQuestion.opsi.kanan;
+        const kiri = currentQuestion.opsi.kiri;   // QUESTIONS
+        const kanan = currentQuestion.opsi.kanan; // ANSWERS
+
+        const colors = [
+            "#86efac","#93c5fd","#fca5a5","#fde68a","#c4b5fd","#f9a8d4","#fdba74"
+        ];
+
+        const findQuestionUsingAnswer = (answerIndex, pairs) =>
+            Object.keys(pairs).find(q => pairs[q] === answerIndex);
+
+        const getPairColor = (questionIndex) =>
+            matchingPairs[questionIndex] !== undefined
+                ? colors[questionIndex % colors.length]
+                : null;
+
+        /* ================= ANSWER CLICK ================= */
+        const selectAnswer = (answerIndex) => {
+            if (status !== "idle") return;
+
+            // if already paired
+            const usedByQuestion = findQuestionUsingAnswer(answerIndex, matchingPairs);
+            if (usedByQuestion !== undefined) {
+
+                // If question is active → replace pair
+                if (activeQuestion !== null) {
+                    setMatchingPairs(prev => {
+                        const updated = { ...prev };
+                        delete updated[usedByQuestion];
+                        updated[activeQuestion] = answerIndex;
+                        setSelectedAnswer(Object.values(updated));
+                        return updated;
+                    });
+                    setActiveAnswer(null);
+                    setActiveQuestion(null);
+                    return;
+                }
+
+                // If no active question → just UNMATCH (do not enter picking state)
+                setMatchingPairs(prev => {
+                    const updated = { ...prev };
+                    delete updated[usedByQuestion];
+                    setSelectedAnswer(Object.values(updated));
+                    return updated;
+                });
+
+                setActiveAnswer(null);
+                setActiveQuestion(null);
+                return;
+            }
+
+            // if question already selected → pair
+            if (activeQuestion !== null) {
+                setMatchingPairs(prev => {
+                    const updated = { ...prev };
+
+                    // remove old pair using this answer
+                    const oldQ = findQuestionUsingAnswer(answerIndex, updated);
+                    if (oldQ !== undefined) delete updated[oldQ];
+
+                    updated[activeQuestion] = answerIndex;
+                    setSelectedAnswer(Object.values(updated));
+                    return updated;
+                });
+                setActiveAnswer(null);
+                setActiveQuestion(null);
+                return;
+            }
+
+            // otherwise select answer
+            setActiveAnswer(answerIndex);
+        };
+
+        /* ================= QUESTION CLICK ================= */
+        const selectQuestion = (questionIndex) => {
+            if (status !== "idle") return;
+
+            // if already paired
+            if (matchingPairs[questionIndex] !== undefined) {
+
+                // If answer is active → replace pair
+                if (activeAnswer !== null) {
+                    setMatchingPairs(prev => {
+                        const updated = { ...prev };
+                        delete updated[questionIndex];
+                        updated[questionIndex] = activeAnswer;
+                        setSelectedAnswer(Object.values(updated));
+                        return updated;
+                    });
+                    setActiveAnswer(null);
+                    setActiveQuestion(null);
+                    return;
+                }
+
+                // If no active answer → just UNMATCH (do not enter picking state)
+                setMatchingPairs(prev => {
+                    const updated = { ...prev };
+                    delete updated[questionIndex];
+                    setSelectedAnswer(Object.values(updated));
+                    return updated;
+                });
+
+                setActiveQuestion(null);
+                setActiveAnswer(null);
+                return;
+            }
+
+            // if answer already selected → pair
+            if (activeAnswer !== null) {
+                setMatchingPairs(prev => {
+                    const updated = { ...prev };
+
+                    const oldQ = findQuestionUsingAnswer(activeAnswer, updated);
+                    if (oldQ !== undefined) delete updated[oldQ];
+
+                    updated[questionIndex] = activeAnswer;
+                    setSelectedAnswer(Object.values(updated));
+                    return updated;
+                });
+                setActiveAnswer(null);
+                setActiveQuestion(null);
+                return;
+            }
+
+            // otherwise select question
+            setActiveQuestion(questionIndex);
+        };
+
+        /* ===== REAL DOM LINE POSITION ===== */
+        const getCoords = (qIdx, aIdx) => {
+            const leftEl = leftRefs.current[aIdx];
+            const rightEl = rightRefs.current[qIdx];
+            const containerEl = containerRef.current;
+
+            if (!leftEl || !rightEl || !containerEl) return null;
+
+            const L = leftEl.getBoundingClientRect();
+            const R = rightEl.getBoundingClientRect();
+            const C = containerEl.getBoundingClientRect();
+
+            return {
+                x1: L.right - C.left + 16,
+                y1: L.top + L.height / 2 - C.top,
+                x2: R.left - C.left - 16,
+                y2: R.top + R.height / 2 - C.top,
+            };
+        };
 
         return (
             <>
-                <div className="space-y-3">
-                    {kiri.map((k, i) => (
-                        <div key={i} className="flex gap-2 items-center">
-                            <div className="flex-1 bg-gray-200 p-2 rounded">{k}</div>
-                            <select
-                                disabled={status !== "idle"}
-                                onChange={e =>
-                                    setSelectedAnswer(prev => ({
-                                        ...(prev ?? {}),
-                                        [i]: Number(e.target.value),
-                                    }))
-                                }
-                                className="p-2 rounded"
+            <div
+                ref={containerRef}
+                className="relative grid grid-cols-2 gap-24 w-full max-w-5xl mx-auto"
+            >
+
+                {/* ANSWERS */}
+                <div className="space-y-6">
+                    {kanan.map((ans,i)=>{
+                        const usedBy = findQuestionUsingAnswer(i, matchingPairs);
+                        const pairColor = usedBy !== undefined ? getPairColor(usedBy) : null;
+                        const isActive = activeAnswer === i;
+
+                        const bg =
+                            pairColor ||
+                            (isActive ? "#fde047" : "#bfdbfe");
+
+                        return (
+                            <div
+                                key={i}
+                                ref={el => leftRefs.current[i] = el}
+                                onClick={()=>selectAnswer(i)}
+                                className="p-5 rounded-xl border-2 cursor-pointer text-lg transition-all"
+                                style={{
+                                    backgroundColor: bg,
+                                    borderColor: "white",
+                                    color: pairColor ? "white" : "black"
+                                }}
                             >
-                                <option value="">Pilih</option>
-                                {kanan.map((j, idx) => (
-                                    <option key={idx} value={idx}>{j}</option>
-                                ))}
-                            </select>
-                        </div>
-                    ))}
+                                {ans}
+                            </div>
+                        );
+                    })}
                 </div>
 
-                <button
-                    className="mt-4 bg-blue-600 text-white px-6 py-2 rounded"
-                    onClick={submitAnswer}
-                >
-                    Kirim Pasangan
-                </button>
+                {/* QUESTIONS */}
+                <div className="space-y-6">
+                    {kiri.map((q,i)=>{
+                        const color = getPairColor(i) || (activeQuestion === i ? "#fde047" : "#86efac");
+                        return (
+                            <div
+                                key={i}
+                                ref={el => rightRefs.current[i] = el}
+                                onClick={()=>selectQuestion(i)}
+                                className="p-5 rounded-xl border-2 cursor-pointer text-lg"
+                                style={{
+                                    backgroundColor: color,
+                                    borderColor: "white",
+                                    color: getPairColor(i) ? "white" : "black"
+                                }}
+                            >
+                                {q}
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* REAL SVG LINES */}
+                <svg className="absolute left-0 top-0 w-full h-full pointer-events-none">
+                    {Object.entries(matchingPairs).map(([q,a])=>{
+                        const coords = getCoords(Number(q), Number(a));
+                        if (!coords) return null;
+
+                        return (
+                            <line
+                                key={q}
+                                x1={coords.x1}
+                                y1={coords.y1}
+                                x2={coords.x2}
+                                y2={coords.y2}
+                                stroke={getPairColor(q)}
+                                strokeWidth="10"
+                                strokeLinecap="round"
+                            />
+                        );
+                    })}
+                </svg>
+            </div>
+
+            <button
+                className="mt-8 bg-blue-600 text-white px-6 py-2 rounded disabled:bg-gray-400"
+                disabled={Object.keys(matchingPairs).length !== kiri.length || status !== "idle"}
+                onClick={submitAnswer}
+            >
+                Kirim Pasangan
+            </button>
             </>
         );
     }
@@ -426,7 +835,7 @@ export default function StudentQuiz() {
     if (quizFinished) {
         return (
             <div className="min-h-screen flex items-center justify-center bg-blue-900 text-white">
-                <div className="bg-white text-black rounded-xl p-8 max-w-md text-center">
+                <div className="bg-white text-black rounded-2xl p-8 max-w-md text-center shadow-xl border border-gray-200">
                     <h1 className="text-2xl font-bold mb-4">🎉 Kuis Selesai!</h1>
 
                     {quizConfig.tampilkan_peringkat && (
@@ -471,8 +880,21 @@ export default function StudentQuiz() {
 
             {renderQuestionByType()}
 
-            {status !== "idle" && (
-                <div className="mt-4 text-white">✅ Jawaban terkirim</div>
+            {status === "result" && quizConfig.tampilkan_jawaban_benar && isCorrect !== null && (
+                <div className={`mt-4 font-bold text-lg ${
+                    isCorrect ? "text-green-300" : "text-red-300"
+                }`}>
+                    {isCorrect ? "✅ Jawaban benar!" : "❌ Jawaban salah"}
+                </div>
+            )}
+
+            {status === "result" && quizConfig.tampilkan_peringkat && (
+                <div className="mt-6 w-full max-w-md bg-white text-black rounded-2xl p-6 shadow-xl border border-gray-200">
+                    <Leaderboard
+                        leaderboard={leaderboard}
+                        questionIndex={questionIndex}
+                    />
+                </div>
             )}
         </div>
     );

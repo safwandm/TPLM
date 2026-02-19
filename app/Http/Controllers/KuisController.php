@@ -20,7 +20,11 @@ class KuisController extends Controller
 
     public function show(Request $request, $id)
     {
-        $kuis = Kuis::with('pertanyaan')
+        $kuis = Kuis::with([
+            'pertanyaan' => function ($query) {
+                $query->orderBy('urutan');
+            }
+        ])
             ->where('id', $id)
             ->where('creator_id', $request->user()->id)
             ->firstOrFail();

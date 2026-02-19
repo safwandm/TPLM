@@ -31,31 +31,7 @@ export default function CreateQuiz() {
   const [jawabanMulti, setJawabanMulti] = useState([]);
   const [batasWaktu, setBatasWaktu] = useState("");
 
-  function getCsrfToken() {
-    return decodeURIComponent(
-      document.cookie
-        .split("; ")
-        .find((r) => r.startsWith("XSRF-TOKEN="))
-        ?.split("=")[1] ?? ""
-    );
-  }
-
-  function resetForm() {
-    setText("");
-    setImageUrl("");
-    setMathEq("");
-    setOpsi(["", "", "", ""]);
-    setJawabanSingle(0);
-    setJawabanMulti([]);
-    setBatasWaktu("");
-    setMatchingPairs([
-      { kiri: "", kanan: "" },
-      { kiri: "", kanan: "" },
-    ]);
-    setEditingIndex(null);
-  }
-
-  function addQuestion() {
+  function addQuestion( resetForm ) {
     if (!text.trim()) return alert("Pertanyaan wajib diisi");
 
     const opsiBersih = opsi.filter((o) => o.trim() !== "");
@@ -124,7 +100,9 @@ export default function CreateQuiz() {
       console.log("Adding new question with payload:", payload);
       setQuestions((q) => [...q, payload]);
     }
+
     resetForm();
+
   }
 
   async function saveQuiz() {
@@ -153,7 +131,6 @@ export default function CreateQuiz() {
       const res = await webFetch(WebAPI.teacher.createQuizFull, {
         method: "POST",
         headers: {
-          "X-XSRF-TOKEN": getCsrfToken(),
           "Content-Type": "application/json"
         },
         body: JSON.stringify(payload),
@@ -208,6 +185,7 @@ export default function CreateQuiz() {
 
         {/* ADD QUESTION */}
         <QuestionForm
+          setEditingIndex={setEditingIndex}
           tipe={tipe}
           setTipe={setTipe}
           text={text}

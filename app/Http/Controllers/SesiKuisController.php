@@ -109,7 +109,7 @@ class SesiKuisController extends Controller
         });
 
         $questions = Pertanyaan::where('kuis_id', $session->kuis_id)
-                        ->orderBy('created_at') 
+                        ->orderBy('urutan') 
                         ->get();
 
         if ($questions->isEmpty()) {

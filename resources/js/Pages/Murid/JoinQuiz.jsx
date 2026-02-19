@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { WebAPI } from "@/lib/api.web";
 import webFetch from "@/lib/webFetch";
 
@@ -10,6 +10,30 @@ export default function JoinQuiz() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
 
+    // Auto-redirect if student already in session
+    useEffect(() => {
+        const peserta = JSON.parse(localStorage.getItem("peserta"));
+        if (!peserta) return;
+
+        async function checkSession() {
+            try {
+                const res = await webFetch(
+                    WebAPI.session.detail(peserta.session_id),
+                    { skipAuth: true }
+                );
+                if (!res.ok) return;
+
+                const sesi = await res.json();
+
+                if (sesi.status === "waiting")
+                    window.location.href = `/menunggu/${peserta.session_id}`;
+                if (sesi.status === "running")
+                    window.location.href = `/kuis/${peserta.session_id}`;
+            } catch {}
+        }
+
+        checkSession();
+    }, []);
 
     async function handleJoin(e) {
         e.preventDefault();
@@ -56,7 +80,7 @@ export default function JoinQuiz() {
 
                 {/* Header */}
                 <div className="flex flex-col items-center mb-6">
-                    <img src="logo" alt="Logo" className="w-24 h-24 mb-3" />
+                    <img src={logo} alt="Logo" className="w-24 h-24 mb-3" />
                     <h1 className="text-xl font-semibold text-gray-800">
                         Ayo Ikut Kuis! 🚀
                     </h1>

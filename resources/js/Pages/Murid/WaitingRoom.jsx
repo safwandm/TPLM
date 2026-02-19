@@ -10,6 +10,21 @@ export default function WaitingRoom({ id }) {
     const [sesi, setSesi] = useState(null);
     const [pesertaList, setPesertaList] = useState([]);
 
+    // Helper for refetching session (for tab return/back button)
+    async function refetchSesi() {
+        try {
+            const res = await webFetch(WebAPI.session.detail(id), { skipAuth: true });
+            if (!res.ok) return;
+
+            const data = await res.json();
+            setSesi(data);
+            setPesertaList(data.pesertas?.map(p => p.nama) || []);
+
+            if (data.status === "running") window.location.href = `/kuis/${id}`;
+            if (data.status === "finished") window.location.href = "/";
+        } catch {}
+    }
+
     /* ================================
        VALIDATE PESERTA
     ================================= */
@@ -53,7 +68,6 @@ export default function WaitingRoom({ id }) {
         fetchSesi();
     }, [id]);
 
-
     /* ================================
        WEBSOCKET
     ================================= */
@@ -73,6 +87,22 @@ export default function WaitingRoom({ id }) {
 
         return () => {
             window.Echo.leave(`sesi.${id}`);
+        };
+    }, [id]);
+
+    /* ================================
+       HANDLE BACK BUTTON / TAB RETURN
+    ================================= */
+    useEffect(() => {
+        const handleShow = () => refetchSesi();
+
+        window.addEventListener("pageshow", handleShow);
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "visible") handleShow();
+        });
+
+        return () => {
+            window.removeEventListener("pageshow", handleShow);
         };
     }, [id]);
 

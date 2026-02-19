@@ -1,6 +1,7 @@
 import { FaPlus } from "react-icons/fa";
 
 export default function QuestionForm({
+  setEditingIndex,
   tipe,
   setTipe,
   text,
@@ -22,6 +23,24 @@ export default function QuestionForm({
   editingIndex,
   addQuestion,
 }) {
+
+  function resetForm() {
+    setEditingIndex(null);
+    setTipe("multiple_choice_single");
+    setText("");
+    setImageUrl("");
+    setMathEq("");
+    setOpsi(["", "", "", ""]);
+    setJawabanSingle(0);
+    setJawabanMulti([]);
+    setBatasWaktu("");
+    setMatchingPairs([
+      { kiri: "", kanan: "" },
+      { kiri: "", kanan: "" },
+    ]);
+  }
+
+
   return (
     <div className="bg-white rounded-xl shadow p-6 space-y-4">
       <h2 className="font-semibold text-lg">Tambah Pertanyaan</h2>
@@ -71,45 +90,45 @@ export default function QuestionForm({
       {/* MULTIPLE CHOICE */}
       {(tipe === "multiple_choice_single" ||
         tipe === "multiple_choice_multi") && (
-        <div className="grid grid-cols-2 gap-6 mt-4 max-w-md">
-          {opsi.map((o, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                checked={
-                  tipe === "multiple_choice_single"
-                    ? jawabanSingle === i
-                    : jawabanMulti.includes(i)
-                }
-                onChange={(e) => {
-                  if (tipe === "multiple_choice_single") {
-                    setJawabanSingle(i);
-                  } else {
-                    if (e.target.checked) {
-                      setJawabanMulti((prev) => [...prev, i]);
-                    } else {
-                      setJawabanMulti((prev) => prev.filter((x) => x !== i));
-                    }
+          <div className="grid grid-cols-2 gap-6 mt-4 max-w-md">
+            {opsi.map((o, i) => (
+              <div key={i} className="flex items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={
+                    tipe === "multiple_choice_single"
+                      ? jawabanSingle === i
+                      : jawabanMulti.includes(i)
                   }
-                }}
-              />
+                  onChange={(e) => {
+                    if (tipe === "multiple_choice_single") {
+                      setJawabanSingle(i);
+                    } else {
+                      if (e.target.checked) {
+                        setJawabanMulti((prev) => [...prev, i]);
+                      } else {
+                        setJawabanMulti((prev) => prev.filter((x) => x !== i));
+                      }
+                    }
+                  }}
+                />
 
-              <input
-                className="border p-3 rounded w-full"
-                placeholder={`Masukkan pilihan ${String.fromCharCode(
-                  97 + i
-                )}`}
-                value={o}
-                onChange={(e) => {
-                  const copy = [...opsi];
-                  copy[i] = e.target.value;
-                  setOpsi(copy);
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
+                <input
+                  className="border p-3 rounded w-full"
+                  placeholder={`Masukkan pilihan ${String.fromCharCode(
+                    97 + i
+                  )}`}
+                  value={o}
+                  onChange={(e) => {
+                    const copy = [...opsi];
+                    copy[i] = e.target.value;
+                    setOpsi(copy);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
       {/* ORDERING */}
       {tipe === "ordering" && (
@@ -256,12 +275,15 @@ export default function QuestionForm({
         className="border p-3 w-full rounded"
         placeholder="Masukkan batas waktu soal (detik)"
         value={batasWaktu}
+        min={3}
         onChange={(e) => setBatasWaktu(e.target.value)}
       />
 
       {/* SUBMIT */}
       <button
-        onClick={addQuestion}
+        onClick={() => {
+          addQuestion(resetForm);
+        }}
         className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-3 rounded flex items-center gap-2"
       >
         <FaPlus /> {editingIndex !== null ? "Update Soal" : "Tambahkan Soal"}

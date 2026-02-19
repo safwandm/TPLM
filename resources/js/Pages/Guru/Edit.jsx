@@ -36,16 +36,6 @@ export default function EditQuiz({ quizId }) {
   const [jawabanMulti, setJawabanMulti] = useState([]);
   const [batasWaktu, setBatasWaktu] = useState("");
 
-  /* ================= CSRF ================= */
-  function getCsrfToken() {
-    return decodeURIComponent(
-      document.cookie
-        .split("; ")
-        .find((r) => r.startsWith("XSRF-TOKEN="))
-        ?.split("=")[1] ?? ""
-    );
-  }
-
   /* ================= FETCH ================= */
   useEffect(() => {
     webFetch(WebAPI.teacher.quiz(quizId))
@@ -74,26 +64,8 @@ export default function EditQuiz({ quizId }) {
       });
   }, [quizId]);
 
-  /* ================= HELPERS ================= */
-  function resetForm() {
-    setEditingId(null);
-    setTipe("multiple_choice_single");
-    setText("");
-    setImageUrl("");
-    setMathEq("");
-    setOpsi(["", "", "", ""]);
-    setJawabanSingle(0);
-    setJawabanMulti([]);
-    setBatasWaktu("");
-    setMatchingPairs([
-      { kiri: "", kanan: "" },
-      { kiri: "", kanan: "" },
-    ]);
-  }
-
-
   /* ================= SUBMIT ================= */
-  function submitQuestion() {
+  function submitQuestion(resetForm) {
     console.log("SUBMIT editingId:", editingId);
     if (!text.trim()) return alert("Pertanyaan wajib diisi");
 
@@ -134,26 +106,27 @@ export default function EditQuiz({ quizId }) {
     const isEditing = editingId !== null && editingId !== undefined;
 
     if (isEditing) {
-      updatedRef.current.set(questions[editingId].id, payload);
+      const realId = questions[editingId].id;
 
-      console.log("Updating question ID:", editingId, "with payload:", payload);
+      // If it's a temp question, just update it in addedRef instead of moving to updatedRef
+      if (String(realId).startsWith("temp-")) {
+        addedRef.current = addedRef.current.map(q =>
+          q.id === realId ? { ...q, ...payload } : q
+        );
+      } else {
+        updatedRef.current.set(realId, payload);
+      }
 
       setQuestions(prev => {
         const copy = [...prev];
-        copy[editingId] = { ...payload, id: prev[editingId].id };
+        copy[editingId] = { ...payload, id: realId };
         return copy;
       });
-
-      console.log("Questions after update:", questions);
     } else {
       const tempId = `temp-${Date.now()}`;
-      addedRef.current.push({ ...payload, kuis_id: quizId });
-      console.log("Adding new question with temp ID:", tempId, "and payload:", payload);
+      addedRef.current.push({ id: tempId, ...payload, kuis_id: quizId });
 
       setQuestions(qs => [...qs, { id: tempId, ...payload }]);
-
-      console.log("Questions after addition:", questions);
-
     }
 
     resetForm();
@@ -184,7 +157,6 @@ export default function EditQuiz({ quizId }) {
       /* QUIZ */
       await webFetch(WebAPI.teacher.quiz(quizId), {
         method: "PUT",
-        headers: { "X-XSRF-TOKEN": getCsrfToken() },
         body: JSON.stringify({
           judul,
           total_waktu: totalWaktu,
@@ -197,7 +169,6 @@ export default function EditQuiz({ quizId }) {
       for (const id of deletedRef.current) {
         const res = await webFetch(WebAPI.teacher.question(id), {
           method: "DELETE",
-          headers: { "X-XSRF-TOKEN": getCsrfToken() },
         });
         if (!res.ok) {
           console.error(await res.text());
@@ -210,7 +181,6 @@ export default function EditQuiz({ quizId }) {
       for (const [id, payload] of updatedRef.current.entries()) {
         const res = await webFetch(WebAPI.teacher.question(id), {
           method: "PUT",
-          headers: { "X-XSRF-TOKEN": getCsrfToken() },
           body: JSON.stringify(payload),
         });
         console.log(WebAPI.teacher.question(id));
@@ -225,7 +195,6 @@ export default function EditQuiz({ quizId }) {
       for (const q of addedRef.current) {
         const res = await webFetch(WebAPI.teacher.createQuestion, {
           method: "POST",
-          headers: { "X-XSRF-TOKEN": getCsrfToken() },
           body: JSON.stringify(q),
         });
         if (!res.ok) {
@@ -276,6 +245,7 @@ export default function EditQuiz({ quizId }) {
         {/* FORM */}
         <div ref={editRef}>
           <QuestionForm
+            setEditingIndex={setEditingId}
             tipe={tipe}
             setTipe={setTipe}
             text={text}
