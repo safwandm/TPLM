@@ -63,7 +63,7 @@ class SesiKuisController extends Controller
             'kuis_id' => 'required|exists:kuis,id',
             'teks_waiting_room' => 'nullable|string'
         ]);
-        \Log::info("TEKS WAITING ROOM DARI FRONTEND:", [
+        Log::info("TEKS WAITING ROOM DARI FRONTEND:", [
             'teks' => $request->teks_waiting_room
         ]);
 

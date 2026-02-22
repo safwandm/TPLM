@@ -64,7 +64,7 @@ Route::get('/menunggu/{id}', fn ($id) =>
 );
 
 Route::get('/kuis/{id}', fn ($id) =>
-    Inertia::render('Murid/MuridQuiz', ['id' => $id])
+    Inertia::render('Murid/MuridQuizRefactored', ['id' => $id])
 );
 
 /*
