@@ -21,6 +21,7 @@ import MatchingQuestion from "@/Components/Questions/MatchingQuestion";
 import Leaderboard from "@/Components/Leaderboard";
 
 export default function MuridQuizRefactored() {
+    const [showImageModal, setShowImageModal] = React.useState(false);
     // In the old page, peserta is stored in localStorage, not passed via Inertia props
     const peserta = JSON.parse(localStorage.getItem("peserta"));
     const sessionId = peserta?.session_id;
@@ -166,6 +167,14 @@ export default function MuridQuizRefactored() {
                 } <b>{quiz.timeLeft}s</b>
             </div>
 
+            {quiz.currentQuestion.url_gambar && (
+                <img
+                    src={quiz.currentQuestion.url_gambar}
+                    alt="question"
+                    onClick={() => setShowImageModal(true)}
+                    className="max-h-72 w-auto rounded-2xl shadow-lg mb-6 border border-white/20 cursor-zoom-in hover:scale-[1.02] transition"
+                />
+            )}
             <h2 className="text-white text-xl mb-6 text-center">
                 {quiz.currentQuestion.pertanyaan}
             </h2>
@@ -194,6 +203,18 @@ export default function MuridQuizRefactored() {
                     <Leaderboard
                         leaderboard={quiz.leaderboard}
                         questionIndex={quiz.questionIndex}
+                    />
+                </div>
+            )}
+            {/* IMAGE MODAL */}
+            {showImageModal && quiz.currentQuestion.url_gambar && (
+                <div
+                    className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
+                    onClick={() => setShowImageModal(false)}
+                >
+                    <img
+                        src={quiz.currentQuestion.url_gambar}
+                        className="max-w-[90vw] max-h-[90vh] rounded-2xl shadow-2xl"
                     />
                 </div>
             )}

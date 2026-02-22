@@ -276,16 +276,20 @@ export default function Dashboard() {
 
                                     <button
                                         onClick={() => {
-                                            const sesiId = q.latest_sesi?.id;
-
-                                            if (!sesiId) {
-                                                alert("Kuis ini belum pernah dijalankan.");
-                                                return;
-                                            }
-
-                                            handleExport(sesiId);
+                                            if (!q.latest_sesi?.id) return;
+                                            handleExport(q.latest_sesi.id);
                                         }}
-                                        title="Export Hasil Kuis"
+                                        disabled={!q.latest_sesi?.id}
+                                        title={
+                                            q.latest_sesi?.id
+                                                ? "Export Hasil Kuis"
+                                                : "Belum ada sesi untuk diexport"
+                                        }
+                                        className={
+                                            q.latest_sesi?.id
+                                                ? ""
+                                                : "opacity-40 cursor-not-allowed"
+                                        }
                                     >
                                         <FaFileAlt />
                                     </button>

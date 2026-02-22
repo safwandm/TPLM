@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import ProtectedLayout from "@/Layouts/ProtectedLayout";
 import webFetch from "@/lib/webFetch";
 import { WebAPI } from "@/lib/api.web";
@@ -7,6 +7,7 @@ import QuestionList from "@/Components/QuestionList";
 import QuestionForm from "@/Components/QuestionForm";
 
 export default function CreateQuiz() {
+  const editRef = useRef(null);
   /* ================= QUIZ ================= */
   const [judul, setJudul] = useState("");
   const [totalWaktu, setTotalWaktu] = useState("");
@@ -187,6 +188,7 @@ export default function CreateQuiz() {
         />
 
         {/* ADD QUESTION */}
+        <div ref={editRef}>
         <QuestionForm
           setEditingIndex={setEditingIndex}
           tipe={tipe}
@@ -210,6 +212,7 @@ export default function CreateQuiz() {
           editingIndex={editingIndex}
           addQuestion={addQuestion}
         />
+        </div>
 
         {/* QUESTION LIST */}
         <QuestionList
@@ -225,9 +228,8 @@ export default function CreateQuiz() {
           setJawabanSingle={setJawabanSingle}
           setJawabanMulti={setJawabanMulti}
           setOpsi={setOpsi}
+          editRef={editRef}
         />
-
-
 
       </div>
     </ProtectedLayout>

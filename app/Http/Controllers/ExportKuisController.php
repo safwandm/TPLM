@@ -26,7 +26,7 @@ class ExportKuisController extends Controller
             ->groupBy('sp.id', 'sp.nama', 'sp.total_skor')
             ->select([
                 'sp.nama',
-                DB::raw('SUM(jp.total_skor) as total_skor'),
+                'sp.total_skor',
                 DB::raw('SUM(CASE WHEN jp.correctness = 1 THEN 1 ELSE 0 END) as jumlah_benar'),
                 DB::raw('COUNT(DISTINCT p.id) as total_pertanyaan'),
             ])

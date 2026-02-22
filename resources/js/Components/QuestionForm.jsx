@@ -1,4 +1,5 @@
 import { FaPlus } from "react-icons/fa";
+import { useState, useEffect } from "react";
 
 export default function QuestionForm({
   setEditingIndex,
@@ -23,6 +24,36 @@ export default function QuestionForm({
   editingIndex,
   addQuestion,
 }) {
+
+  const [imageError, setImageError] = useState(false);
+
+  function validateImage(url) {
+    if (!url) {
+      setImageError(false);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => setImageError(false);
+    img.onerror = () => setImageError(true);
+    img.src = url;
+  }
+
+  function validateImage(url) {
+    if (!url) {
+      setImageError(false);
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => setImageError(false);
+    img.onerror = () => setImageError(true);
+    img.src = url;
+  }
+
+  useEffect(() => {
+    validateImage(imageUrl);
+  }, [imageUrl]);
 
   function resetForm() {
     setEditingIndex(null);
@@ -72,12 +103,22 @@ export default function QuestionForm({
 
       {/* MEDIA */}
       <div className="grid grid-cols-2 gap-4">
+
         <input
-          className="border p-3 rounded w-full"
+          className={`border p-3 rounded w-full ${imageError ? "border-red-500" : ""}`}
           placeholder="URL Gambar (opsional)"
           value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-        />
+          onChange={(e) => {
+            const url = e.target.value;
+            setImageUrl(url);
+            validateImage(url);
+          }} />
+
+        {imageError && (
+          <div className="text-red-500 text-sm col-span-2">
+            URL gambar tidak valid atau tidak dapat dimuat.
+          </div>
+        )}
 
         <input
           className="border p-3 rounded w-full"
@@ -280,14 +321,32 @@ export default function QuestionForm({
       />
 
       {/* SUBMIT */}
-      <button
-        onClick={() => {
-          addQuestion(resetForm);
-        }}
-        className="bg-blue-700 hover:bg-blue-800 text-white px-5 py-3 rounded flex items-center gap-2"
-      >
-        <FaPlus /> {editingIndex !== null ? "Update Soal" : "Tambahkan Soal"}
-      </button>
+      <div className="flex gap-3 mt-2">
+        <button
+          type="button"
+          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition"
+          onClick={() => {
+            if (imageError) {
+              alert("URL gambar tidak valid. Periksa kembali sebelum menyimpan.");
+              return;
+            }
+            addQuestion(resetForm);
+          }}
+        >
+          <FaPlus />
+          {editingIndex !== null ? "Update Soal" : "Tambahkan Soal"}
+        </button>
+
+        {editingIndex !== null && (
+          <button
+            type="button"
+            className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 font-semibold"
+            onClick={resetForm}
+          >
+            Batal Edit
+          </button>
+        )}
+      </div>
     </div>
   );
 }

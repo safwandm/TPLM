@@ -1,6 +1,11 @@
 import { FaTrash } from "react-icons/fa";
+import { useState } from "react";
 
 export default function QuestionPreview({ q, index, onEdit, onDelete }) {
+
+  const [imgError, setImgError] = useState(false);
+  const imageSrc = q.image_url || q.url_gambar || null;
+
   return (
     <div className="relative border border-gray-200 rounded-2xl p-6 shadow-sm bg-white">
       {/* Actions */}
@@ -27,12 +32,20 @@ export default function QuestionPreview({ q, index, onEdit, onDelete }) {
         </div>
 
         {/* Image */}
-        {q.image_url && (
-          <img
-            src={q.image_url}
-            alt="question"
-            className="w-56 h-36 object-cover rounded-lg"
-          />
+        {imageSrc && (
+          <div className="space-y-2">
+            {!imgError ? (
+              <img
+                src={imageSrc} alt="question"
+                className="w-56 h-36 object-cover rounded-lg border"
+                onError={() => setImgError(true)}
+              />
+            ) : (
+              <div className="w-56 h-36 flex items-center justify-center rounded-lg border border-red-400 bg-red-50 text-red-600 text-sm text-center px-3">
+                Gambar gagal dimuat. Link mungkin tidak valid.
+              </div>
+            )}
+          </div>
         )}
 
         {/* Math Equation */}

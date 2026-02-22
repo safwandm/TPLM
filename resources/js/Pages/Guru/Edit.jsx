@@ -59,7 +59,10 @@ export default function EditQuiz({ quizId }) {
             tipe_pertanyaan: p.tipe_pertanyaan,
             pertanyaan: p.pertanyaan,
             opsi: p.opsi,
-            jawaban_benar: p.jawaban_benar,
+            // Backend sends true_false as [true]/[false] → normalize to boolean
+            jawaban_benar: p.tipe_pertanyaan === "true_false"
+              ? (Array.isArray(p.jawaban_benar) ? p.jawaban_benar[0] : p.jawaban_benar)
+              : p.jawaban_benar,
             batas_waktu: p.batas_waktu,
             url_gambar: p.url_gambar,
             persamaan_matematika: p.persamaan_matematika,
@@ -289,6 +292,7 @@ export default function EditQuiz({ quizId }) {
           setJawabanMulti={setJawabanMulti}
           setOpsi={setOpsi}
           onDelete={deleteQuestion}
+          editRef={editRef}
         />
       </div>
     </ProtectedLayout>

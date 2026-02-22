@@ -129,23 +129,47 @@ export default function useQuizSocket({
                     const normalizedStudent = normalizeForCompare(studentToCompare, liveQuestion.tipe_pertanyaan);
                     const normalizedCorrect = normalizeForCompare(correctToCompare, liveQuestion.tipe_pertanyaan);
 
-                    // full correct
+                    // FULL MATCH (all correct)
                     if (normalizedStudent === normalizedCorrect) {
                         setIsCorrect("correct");
                     }
-                    // partial logic for multi-answer / ordering / matching
+                    // MULTI / ORDERING / MATCHING ARRAY LOGIC
                     else if (
                         Array.isArray(studentToCompare) &&
-                        Array.isArray(correctToCompare) &&
-                        studentToCompare.length > 0
+                        Array.isArray(correctToCompare)
                     ) {
-                        const intersection = studentToCompare.filter(v => correctToCompare.includes(v));
-                        if (intersection.length > 0) {
+                        const studentArr = studentToCompare;
+                        const correctArr = correctToCompare;
+
+                        const pickedAllOptions =
+                            liveQuestion?.opsi &&
+                            Array.isArray(liveQuestion.opsi) &&
+                            studentArr.length === liveQuestion.opsi.length;
+
+                        const intersection = studentArr.filter(v => correctArr.includes(v));
+
+                        const allCorrect =
+                            correctArr.every(v => studentArr.includes(v)) &&
+                            studentArr.length === correctArr.length;
+
+                        // All correct already handled above, but keep safety
+                        if (allCorrect) {
+                            setIsCorrect("correct");
+                        }
+                        // Student picked ALL options while some are wrong → invalid guess
+                        else if (pickedAllOptions && correctArr.length !== liveQuestion.opsi.length) {
+                            setIsCorrect("invalid");
+                        }
+                        // Some correct
+                        else if (intersection.length > 0) {
                             setIsCorrect("partial");
-                        } else {
+                        }
+                        // All wrong
+                        else {
                             setIsCorrect("wrong");
                         }
                     }
+                    // SINGLE ANSWER FALLBACK
                     else {
                         setIsCorrect("wrong");
                     }

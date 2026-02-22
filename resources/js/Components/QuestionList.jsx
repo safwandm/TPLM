@@ -13,7 +13,8 @@ export default function QuestionList({
     setJawabanMulti,
     setOpsi,
     setMatchingPairs,
-    onDelete
+    onDelete,
+    editRef
 }) {
     function handleEdit(index) {
         const qEdit = questions[index];
@@ -29,7 +30,10 @@ export default function QuestionList({
         setBatasWaktu(qEdit.batas_waktu ?? "");
 
         if (qEdit.tipe_pertanyaan === "true_false") {
-            setJawabanSingle(qEdit.jawaban_benar ? 1 : 0);
+            const boolAnswer = Array.isArray(qEdit.jawaban_benar)
+                ? qEdit.jawaban_benar[0]
+                : qEdit.jawaban_benar;
+            setJawabanSingle(boolAnswer ? 1 : 0);
             setOpsi(["", "", "", ""]);
             setJawabanMulti([]);
         }
@@ -77,7 +81,9 @@ export default function QuestionList({
             ]);
         }
 
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        if (editRef?.current) {
+            editRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
     }
 
     function handleDelete(index) {

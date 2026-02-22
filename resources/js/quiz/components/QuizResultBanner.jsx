@@ -31,18 +31,29 @@ export default function QuizResultBanner({
     correct: "text-green-300",
     wrong: "text-red-300",
     partial: "text-yellow-300",
+    invalid: "text-orange-300",
   };
 
   const textMap = {
     correct: "✅ Jawaban benar!",
     wrong: "❌ Jawaban salah",
     partial: "🟡 Sebagian jawaban benar",
+    invalid: "⚠️ Semua opsi dipilih (jawaban tidak valid)",
   };
 
-  let resultKey;
+  // Prefer the realtime result coming from socket (multi‑answer already handled there)
+  let resultKey = null;
 
-  // Matching questions → compute real correctness from arrays
-  if (Array.isArray(selectedAnswer) && Array.isArray(correctAnswer)) {
+  // If socket already provided string result (correct / wrong / partial / invalid)
+  if (typeof isCorrect === "string") {
+    resultKey = isCorrect;
+  }
+  // Fallback for boolean single‑answer questions
+  else if (typeof isCorrect === "boolean") {
+    resultKey = isCorrect ? "correct" : "wrong";
+  }
+  // Last fallback (should rarely happen) – keep old array comparison only if socket gave nothing
+  else if (Array.isArray(selectedAnswer) && Array.isArray(correctAnswer)) {
     let correctCount = 0;
     for (let i = 0; i < correctAnswer.length; i++) {
       if (selectedAnswer[i] === correctAnswer[i]) correctCount++;
@@ -51,11 +62,6 @@ export default function QuizResultBanner({
     if (correctCount === 0) resultKey = "wrong";
     else if (correctCount === correctAnswer.length) resultKey = "correct";
     else resultKey = "partial";
-  } else {
-    resultKey =
-      isCorrect === true ? "correct" :
-      isCorrect === false ? "wrong" :
-      isCorrect;
   }
 
   if (!resultKey) return null;
