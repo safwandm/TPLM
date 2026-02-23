@@ -240,7 +240,7 @@ class SesiKuisController extends Controller
         $question = Pertanyaan::find($currentQuestionId);
 
         $correctness = $question->cekJawaban($request->jawaban);
-        $correctnessInt = (int) round($correctness);
+        $correctnessInt = $correctness === 1.0 ? 1 : 0;
         $score = 0;
         $finalScore = 0; // ALWAYS integer-safe score
         
