@@ -9,6 +9,8 @@ export default function QuestionList({
     setImageUrl,
     setMathEq,
     setBatasWaktu,
+    setSkor,
+    setSkorBonusWaktu,
     setJawabanSingle,
     setJawabanMulti,
     setOpsi,
@@ -28,6 +30,14 @@ export default function QuestionList({
         setImageUrl(qEdit.url_gambar ?? qEdit.image_url ?? "");
         setMathEq(qEdit.persamaan_matematika ?? "");
         setBatasWaktu(qEdit.batas_waktu ?? "");
+
+        // hydrate scoring fields
+        if (typeof setSkor === 'function') {
+            setSkor(qEdit.skor ?? null);
+        }
+        if (typeof setSkorBonusWaktu === 'function') {
+            setSkorBonusWaktu(qEdit.skor_bonus_waktu ?? null);
+        }
 
         if (qEdit.tipe_pertanyaan === "true_false") {
             const boolAnswer = Array.isArray(qEdit.jawaban_benar)

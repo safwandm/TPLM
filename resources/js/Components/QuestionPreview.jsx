@@ -132,12 +132,14 @@ export default function QuestionPreview({ q, index, onEdit, onDelete }) {
           </div>
         )}
 
-        {/* Time Limit */}
-        {q.batas_waktu && (
-          <div className="text-sm text-gray-400 mt-1">
-            Batas waktu: {q.batas_waktu} detik
-          </div>
-        )}
+        {/* Time + Score Info */}
+        <div className="text-sm text-gray-400 mt-2 flex gap-4 flex-wrap">
+          {q.batas_waktu && (
+            <span>Batas waktu: {q.batas_waktu} detik</span>
+          )}
+          <span>Skor: {q.skor ?? 5}</span>
+          <span>Bonus waktu: {q.skor_bonus_waktu ?? 5}</span>
+        </div>
       </div>
     </div>
   );

@@ -37,6 +37,8 @@ export default function EditQuiz({ quizId }) {
   const [jawabanSingle, setJawabanSingle] = useState(0);
   const [jawabanMulti, setJawabanMulti] = useState([]);
   const [batasWaktu, setBatasWaktu] = useState("");
+  const [skor, setSkor] = useState(null);
+  const [skorBonusWaktu, setSkorBonusWaktu] = useState(null);
 
   /* ================= FETCH ================= */
   useEffect(() => {
@@ -66,6 +68,8 @@ export default function EditQuiz({ quizId }) {
             batas_waktu: p.batas_waktu,
             url_gambar: p.url_gambar,
             persamaan_matematika: p.persamaan_matematika,
+            skor: p.skor,
+            skor_bonus_waktu: p.skor_bonus_waktu,
           }))
         );
       });
@@ -82,6 +86,8 @@ export default function EditQuiz({ quizId }) {
       url_gambar: imageUrl || null,
       persamaan_matematika: mathEq || null,
       batas_waktu: batasWaktu ? Number(batasWaktu) : null,
+      skor: skor ?? null,
+      skor_bonus_waktu: skorBonusWaktu ?? null,
     };
 
     if (tipe === "true_false") {
@@ -272,6 +278,10 @@ export default function EditQuiz({ quizId }) {
             setJawabanMulti={setJawabanMulti}
             batasWaktu={batasWaktu}
             setBatasWaktu={setBatasWaktu}
+            skor={skor}
+            setSkor={setSkor}
+            skorBonusWaktu={skorBonusWaktu}
+            setSkorBonusWaktu={setSkorBonusWaktu}
             editingIndex={editingId}
             addQuestion={submitQuestion}
           />
@@ -293,6 +303,8 @@ export default function EditQuiz({ quizId }) {
           setOpsi={setOpsi}
           onDelete={deleteQuestion}
           editRef={editRef}
+          setSkor={setSkor}
+          setSkorBonusWaktu={setSkorBonusWaktu}
         />
       </div>
     </ProtectedLayout>

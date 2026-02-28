@@ -33,6 +33,8 @@ export default function CreateQuiz() {
   const [jawabanSingle, setJawabanSingle] = useState(0);
   const [jawabanMulti, setJawabanMulti] = useState([]);
   const [batasWaktu, setBatasWaktu] = useState("");
+  const [skor, setSkor] = useState(null);
+  const [skorBonusWaktu, setSkorBonusWaktu] = useState(null);
 
   function addQuestion( resetForm ) {
     if (!text.trim()) return alert("Pertanyaan wajib diisi");
@@ -55,9 +57,11 @@ export default function CreateQuiz() {
       id: Date.now(),
       tipe_pertanyaan: tipe,
       pertanyaan: text,
-      image_url: imageUrl || null,
-      persamaan: mathEq || null,
+      url_gambar: imageUrl || null,
+      persamaan_matematika: mathEq || null,
       batas_waktu: batasWaktu ? Number(batasWaktu) : null,
+      skor: skor ?? null,
+      skor_bonus_waktu: skorBonusWaktu ?? null,
     };
 
     if (tipe === "true_false") {
@@ -123,11 +127,13 @@ export default function CreateQuiz() {
       pertanyaan: questions.map(q => ({
         tipe_pertanyaan: q.tipe_pertanyaan,
         pertanyaan: q.pertanyaan,
-        image_url: q.image_url,
-        persamaan: q.persamaan,
+        url_gambar: q.url_gambar,
+        persamaan_matematika: q.persamaan_matematika,
         opsi: q.opsi === undefined ? null : q.opsi,
         jawaban_benar: q.jawaban_benar,
-        batas_waktu: q.batas_waktu ?? null
+        batas_waktu: q.batas_waktu ?? null,
+        skor: q.skor,
+        skor_bonus_waktu: q.skor_bonus_waktu
       }))
     };
 
@@ -209,6 +215,10 @@ export default function CreateQuiz() {
           setJawabanMulti={setJawabanMulti}
           batasWaktu={batasWaktu}
           setBatasWaktu={setBatasWaktu}
+          skor={skor}
+          setSkor={setSkor}
+          skorBonusWaktu={skorBonusWaktu}
+          setSkorBonusWaktu={setSkorBonusWaktu}
           editingIndex={editingIndex}
           addQuestion={addQuestion}
         />
@@ -229,6 +239,8 @@ export default function CreateQuiz() {
           setJawabanMulti={setJawabanMulti}
           setOpsi={setOpsi}
           editRef={editRef}
+          setSkor={setSkor}
+          setSkorBonusWaktu={setSkorBonusWaktu}
         />
 
       </div>

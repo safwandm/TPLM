@@ -21,23 +21,16 @@ export default function QuestionForm({
   setJawabanMulti,
   batasWaktu,
   setBatasWaktu,
+  skor,
+  setSkor,
+  skorBonusWaktu,
+  setSkorBonusWaktu,
   editingIndex,
   addQuestion,
 }) {
 
   const [imageError, setImageError] = useState(false);
-
-  function validateImage(url) {
-    if (!url) {
-      setImageError(false);
-      return;
-    }
-
-    const img = new Image();
-    img.onload = () => setImageError(false);
-    img.onerror = () => setImageError(true);
-    img.src = url;
-  }
+  const [showScoreInfo, setShowScoreInfo] = useState(false);
 
   function validateImage(url) {
     if (!url) {
@@ -65,6 +58,8 @@ export default function QuestionForm({
     setJawabanSingle(0);
     setJawabanMulti([]);
     setBatasWaktu("");
+    setSkor(null);
+    setSkorBonusWaktu(null);
     setMatchingPairs([
       { kiri: "", kanan: "" },
       { kiri: "", kanan: "" },
@@ -94,6 +89,7 @@ export default function QuestionForm({
       </select>
 
       {/* QUESTION TEXT */}
+      <h3 className="font-semibold">Pertanyaan</h3>
       <textarea
         className="border p-3 w-full rounded"
         placeholder="Masukkan pertanyaan kuis"
@@ -102,6 +98,7 @@ export default function QuestionForm({
       />
 
       {/* MEDIA */}
+      <h3 className="font-semibold">Media (opsional)</h3>
       <div className="grid grid-cols-2 gap-4">
 
         <input
@@ -129,6 +126,9 @@ export default function QuestionForm({
       </div>
 
       {/* MULTIPLE CHOICE */}
+      {(tipe === "multiple_choice_single" || tipe === "multiple_choice_multi") && (
+        <h3 className="font-semibold">Pilihan Jawaban</h3>
+      )}
       {(tipe === "multiple_choice_single" ||
         tipe === "multiple_choice_multi") && (
           <div className="grid grid-cols-2 gap-6 mt-4 max-w-md">
@@ -172,6 +172,7 @@ export default function QuestionForm({
         )}
 
       {/* ORDERING */}
+      {tipe === "ordering" && <h3 className="font-semibold">Urutan Jawaban</h3>}
       {tipe === "ordering" && (
         <div className="space-y-3 mt-4 max-w-md">
           {opsi.map((o, i) => (
@@ -233,6 +234,7 @@ export default function QuestionForm({
       )}
 
       {/* MATCHING */}
+      {tipe === "matching" && <h3 className="font-semibold">Pasangan Matching</h3>}
       {tipe === "matching" && (
         <div className="space-y-4 mt-4 max-w-xl">
           {matchingPairs.map((pair, i) => (
@@ -299,6 +301,7 @@ export default function QuestionForm({
       )}
 
       {/* TRUE FALSE */}
+      {tipe === "true_false" && <h3 className="font-semibold">Jawaban Benar</h3>}
       {tipe === "true_false" && (
         <select
           className="border p-3 w-full rounded"
@@ -311,6 +314,7 @@ export default function QuestionForm({
       )}
 
       {/* TIME LIMIT */}
+      <h3 className="font-semibold">Batas Waktu (detik)</h3>
       <input
         type="number"
         className="border p-3 w-full rounded"
@@ -319,6 +323,68 @@ export default function QuestionForm({
         min={3}
         onChange={(e) => setBatasWaktu(e.target.value)}
       />
+
+      {/* SCORING */}
+      <h3 className="font-semibold">Pengaturan Skor</h3>
+      <button
+        type="button"
+        onClick={() => setShowScoreInfo((v) => !v)}
+        className="flex items-center justify-between w-full bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm font-medium text-blue-900 hover:bg-blue-100 transition"
+      >
+        <span>Cara perhitungan skor</span>
+        <span className="text-lg">{showScoreInfo ? "−" : "+"}</span>
+      </button>
+
+      {showScoreInfo && (
+        <div className="bg-blue-50 border border-blue-200 border-t-0 rounded-b-lg p-4 text-sm text-gray-700 space-y-2">
+          <p>
+            Skor akhir dihitung berdasarkan <strong>jawaban benar</strong> dan <strong>kecepatan menjawab</strong>.
+          </p>
+          <ul className="list-disc pl-5 space-y-1">
+            <li>Jika siswa menjawab sangat cepat → mendapatkan <strong>Skor Dasar + Bonus Waktu</strong> (poin maksimal).</li>
+            <li>Jika menjawab di tengah waktu → mendapatkan sebagian bonus.</li>
+            <li>Jika menjawab sangat lambat atau auto-submit saat waktu habis → hanya mendapatkan <strong>Skor Dasar</strong>.</li>
+          </ul>
+          <p className="text-gray-600">
+            Rumus sederhana:<br />
+            <span className="font-mono">Skor = (Skor Dasar + (Bonus Waktu × Faktor Kecepatan))</span>
+          </p>
+          <p className="text-gray-600">
+            Faktor Kecepatan bernilai antara 0–1 (semakin cepat menjawab, semakin mendekati 1).
+          </p>
+        </div>
+      )}
+      <div className="grid grid-cols-2 gap-4">
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Skor Dasar</label>
+          <input
+            type="number"
+            min={1}
+            className="border p-3 rounded w-full"
+            placeholder="Masukkan Skor dasar"
+            value={skor ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSkor(v === "" ? null : Number(v));
+            }}
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <label className="text-sm font-medium">Bonus Waktu</label>
+          <input
+            type="number"
+            min={0}
+            className="border p-3 rounded w-full"
+            placeholder="Masukkan Bonus waktu"
+            value={skorBonusWaktu ?? ""}
+            onChange={(e) => {
+              const v = e.target.value;
+              setSkorBonusWaktu(v === "" ? null : Number(v));
+            }}
+          />
+        </div>
+      </div>
 
       {/* SUBMIT */}
       <div className="flex gap-3 mt-2">
