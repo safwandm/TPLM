@@ -85,13 +85,14 @@ export default function OrderingQuestion({
 
         if (!studentOriginalOrder) return "";
 
-        // We are rendering CORRECT ORDER positions now
-        // correctAnswer[positionIndex] is ORIGINAL index that belongs here
-        const correctOriginalIndex = correctAnswer[positionIndex];
+        const renderedShuffledIndex = order[positionIndex];
 
-        // find where student placed that ORIGINAL item
-        const studentPosition = studentOriginalOrder.indexOf(correctOriginalIndex);
+        // Convert rendered item → ORIGINAL index
+        const renderedOriginalIndex = shuffledToOriginal[renderedShuffledIndex];
 
+        // Where did the student place THIS item?
+        const studentPosition = studentOriginalOrder.indexOf(renderedOriginalIndex);
+        
         return studentPosition === positionIndex
             ? "border-green-500 bg-green-50"
             : "border-red-500 bg-red-50";

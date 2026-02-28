@@ -29,6 +29,12 @@ export default function MuridQuizRefactored() {
     /* ================= STATE ================= */
     const quiz = useQuizState();
 
+    console.log("[MuridQuiz] render", {
+        finished: quiz?.quizFinished,
+        leaderboardLength: quiz?.leaderboard?.length
+    });
+
+
     /* ================= SOCKET ================= */
     useQuizSocket({
         sessionId,
@@ -39,6 +45,8 @@ export default function MuridQuizRefactored() {
         setCorrectAnswer: quiz.setCorrectAnswer,
         setIsCorrect: quiz.setIsCorrect,
         setLeaderboard: quiz.setLeaderboard,
+        leaderboard: quiz.leaderboard,
+        peserta: peserta,
         setTimeLeft: quiz.setTimeLeft,
         setQuizFinished: quiz.setQuizFinished,
         setPendingSessionFinish: quiz.setPendingSessionFinish,
@@ -98,6 +106,14 @@ export default function MuridQuizRefactored() {
 
     /* ================= FINISHED SCREEN ================= */
     if (quiz.quizFinished) {
+        console.log("[MuridQuiz] rendering FINISH SCREEN with leaderboard:", quiz.leaderboard);
+
+        // quiz
+        console.log("[MuridQuiz] quiz state at finish:", {
+            finalScore: quiz.finalScore,
+            questionIndex: quiz.questionIndex,
+            quizConfig: quiz.quizConfig,
+        });
         return (
             <QuizFinishScreen
                 leaderboard={quiz.leaderboard}

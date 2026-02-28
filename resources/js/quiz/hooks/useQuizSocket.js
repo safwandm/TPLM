@@ -26,7 +26,10 @@ export default function useQuizSocket({
     setSelectedAnswer,
     setCorrectAnswer,
     setIsCorrect,
+
     setLeaderboard,
+    leaderboard,
+    peserta,
     setTimeLeft,
     setQuizFinished,
     setPendingSessionFinish,
@@ -41,6 +44,15 @@ export default function useQuizSocket({
 
     hp,
 }) {
+
+    const leaderboardRef = useRef(leaderboard);
+    const pesertaRef = useRef(peserta);
+
+    // keep refs updated when state changes
+    useEffect(() => {
+        leaderboardRef.current = leaderboard;
+        pesertaRef.current = peserta;
+    }, [leaderboard, peserta]);
 
     useEffect(() => {
         if (!sessionId) return;
@@ -129,8 +141,12 @@ export default function useQuizSocket({
                     const normalizedStudent = normalizeForCompare(studentToCompare, liveQuestion.tipe_pertanyaan);
                     const normalizedCorrect = normalizeForCompare(correctToCompare, liveQuestion.tipe_pertanyaan);
 
-                    // FULL MATCH (all correct)
-                    if (normalizedStudent === normalizedCorrect) {
+                    // FULL MATCH (skip for ordering & matching because they require positional scoring)
+                    if (
+                        liveQuestion.tipe_pertanyaan !== "ordering" &&
+                        liveQuestion.tipe_pertanyaan !== "matching" &&
+                        normalizedStudent === normalizedCorrect
+                    ) {
                         setIsCorrect("correct");
                     }
                     // MULTI / ORDERING / MATCHING ARRAY LOGIC
@@ -138,6 +154,52 @@ export default function useQuizSocket({
                         Array.isArray(studentToCompare) &&
                         Array.isArray(correctToCompare)
                     ) {
+                        // ===== ORDERING POSITIONAL SCORING =====
+                        if (liveQuestion.tipe_pertanyaan === "ordering") {
+                            const studentArr = studentToCompare;
+                            const correctArr = correctToCompare;
+
+                            let correctPositions = 0;
+                            for (let i = 0; i < correctArr.length; i++) {
+                                if (studentArr[i] === correctArr[i]) {
+                                    correctPositions++;
+                                }
+                            }
+
+                            if (correctPositions === correctArr.length) {
+                                setIsCorrect("correct");
+                            } else if (correctPositions === 0) {
+                                setIsCorrect("wrong");
+                            } else {
+                                setIsCorrect("partial");
+                            }
+
+                            return; // stop here, do NOT run multi-select logic below
+                        }
+
+                        // ===== MATCHING POSITIONAL SCORING =====
+                        if (liveQuestion.tipe_pertanyaan === "matching") {
+                            const studentArr = studentToCompare;
+                            const correctArr = correctToCompare;
+
+                            let correctPairs = 0;
+                            for (let i = 0; i < correctArr.length; i++) {
+                                if (studentArr[i] === correctArr[i]) {
+                                    correctPairs++;
+                                }
+                            }
+
+                            if (correctPairs === correctArr.length) {
+                                setIsCorrect("correct");
+                            } else if (correctPairs === 0) {
+                                setIsCorrect("wrong");
+                            } else {
+                                setIsCorrect("partial");
+                            }
+
+                            return; // stop here, do NOT run multi-select logic below
+                        }
+
                         const studentArr = studentToCompare;
                         const correctArr = correctToCompare;
 
@@ -183,18 +245,31 @@ export default function useQuizSocket({
 
         /* ================= LEADERBOARD ================= */
         channel.listen(".LeaderboardUpdated", (e) => {
-            console.log("[SOCKET] LeaderboardUpdated", e);
-            setLeaderboard(e.leaderboard);
+            setLeaderboard([...(e.leaderboard || [])]);
         });
 
         /* ================= SESSION FINISHED ================= */
         channel.listen(".SessionFinished", () => {
             console.log("[SOCKET] SessionFinished");
-            const latest = JSON.parse(localStorage.getItem("peserta"));
-            setFinalScore(latest?.total_skor ?? 0);
+                    
+            const latestLeaderboard = leaderboardRef.current;
+            const latestPeserta = pesertaRef.current;
+
+            const me = latestLeaderboard?.find(p => p.nama === latestPeserta?.nama);
+            const myScore = me?.total_skor ?? 0;
+
+            console.log("[SOCKET] derived final score from leaderboard:", myScore);
+            setFinalScore(myScore);
+
+            console.log("[SOCKET] SessionFinished timing snapshot", {
+                currentTimeLeft: window.__quizTimeLeftDebug,
+                currentStatus: window.__quizStatusDebug,
+                timestamp: Date.now(),
+            });
+
             setPendingSessionFinish(true);
         });
-
         return () => window.Echo.leave(`sesi.${sessionId}`);
+
     }, [sessionId]);
 }

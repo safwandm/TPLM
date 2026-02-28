@@ -45,7 +45,10 @@ export default function useQuizRestore({
 
                 // quiz already finished
                 if (data.status === "finished") {
+                    console.log("[useQuizRestore] quiz already finished on restore");
                     setQuizFinished(true);
+
+                    // Return to enter quiz code screen if quiz is finished and user tries to restore (e.g. via back button)
                     setFinalScore(data.final_score);
                     return;
                 }

@@ -50,7 +50,18 @@ export default function QuizResultBanner({
   }
   // Fallback for boolean single‑answer questions
   else if (typeof isCorrect === "boolean") {
-    resultKey = isCorrect ? "correct" : "wrong";
+    // If backend only sends boolean but we have array answers (like ordering / multi-step),
+    // detect partial correctness on the frontend.
+    if (
+      isCorrect === true &&
+      Array.isArray(selectedAnswer) &&
+      Array.isArray(correctAnswer) &&
+      JSON.stringify(selectedAnswer) !== JSON.stringify(correctAnswer)
+    ) {
+      resultKey = "partial";
+    } else {
+      resultKey = isCorrect ? "correct" : "wrong";
+    }
   }
   // Last fallback (should rarely happen) – keep old array comparison only if socket gave nothing
   else if (Array.isArray(selectedAnswer) && Array.isArray(correctAnswer)) {

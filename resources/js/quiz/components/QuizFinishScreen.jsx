@@ -1,7 +1,5 @@
 
 
-import React from "react";
-
 export default function QuizFinishScreen({
     leaderboard = [],
     peserta,
@@ -9,6 +7,9 @@ export default function QuizFinishScreen({
     questionIndex = 0,
     quizConfig = {},
 }) {
+    console.log("[FinishScreen] render", {
+        leaderboardLength: leaderboard?.length
+    });
     const sorted = [...leaderboard].sort((a, b) => b.total_skor - a.total_skor);
 
     const meIndex = sorted.findIndex(p => p.nama === peserta?.nama);
@@ -28,9 +29,15 @@ export default function QuizFinishScreen({
         }
     }
 
+    // Correct count calculated
+    console.log("[FinishScreen] calculated correctCount:", correctCount, "from finalScore:", finalScore, "and totalSoal:", totalSoal);
+
     const percentage = totalSoal > 0
         ? Math.round((correctCount / totalSoal) * 100)
         : 0;
+
+    // percentage calculated
+    console.log("[FinishScreen] calculated percentage:", percentage, "from correctCount:", correctCount, "and totalSoal:", totalSoal);
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-blue-900 p-6">

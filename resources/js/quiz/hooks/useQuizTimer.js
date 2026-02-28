@@ -95,4 +95,9 @@ export default function useQuizTimer({
         autoSubmittedRef.current = true;
         onTimeoutSubmit();
     }, [timeLeft, status, onTimeoutSubmit]);
+
+    useEffect(() => {
+        window.__quizTimeLeftDebug = timeLeft;
+        window.__quizStatusDebug = status;
+    }, [timeLeft, status]);
 }
