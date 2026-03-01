@@ -18,6 +18,30 @@ export default function QuestionList({
     onDelete,
     editRef
 }) {
+    // ===== Quiz duration estimator (matches backend scheduler) =====
+    const START_DELAY = 5; // config('quiz.start_delay')
+    const BREAK_TIME = 5; // config('quiz.question_break_time')
+    const DEFAULT_Q_TIME = 30; // fallback when batas_waktu is null
+
+    const questionCount = questions?.length ?? 0;
+    const totalQuestionTime = (questions ?? []).reduce((sum, q) => {
+        const t = q?.batas_waktu ?? DEFAULT_Q_TIME;
+        return sum + (Number(t) || 0);
+    }, 0);
+
+    const totalBreakTime = questionCount > 1 ? BREAK_TIME * (questionCount - 1) : 0;
+    const totalSeconds = questionCount
+        ? START_DELAY + totalQuestionTime + totalBreakTime
+        : 0;
+
+    function formatDuration(sec) {
+        if (!sec) return "0 detik";
+        const m = Math.floor(sec / 60);
+        const s = sec % 60;
+        if (m === 0) return `${s} detik`;
+        if (s === 0) return `${m} menit`;
+        return `${m} menit ${s} detik`;
+    }
     function handleEdit(index) {
         const qEdit = questions[index];
 
@@ -115,6 +139,18 @@ export default function QuestionList({
     return (
         <div className="bg-white rounded-xl shadow p-6 space-y-4">
             <h2 className="font-semibold text-lg">Pertanyaan</h2>
+
+            {questionCount > 0 && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm text-gray-700">
+                    <div className="font-medium mb-1">Estimasi durasi kuis</div>
+                    <div>• Countdown awal: {START_DELAY} detik</div>
+                    <div>• Total waktu semua soal: {totalQuestionTime} detik</div>
+                    <div>• Total jeda antar soal: {totalBreakTime} detik</div>
+                    <div className="mt-1 font-semibold">
+                        ≈ Total: {totalSeconds} detik ({formatDuration(totalSeconds)})
+                    </div>
+                </div>
+            )}
 
             {questions.map((q, i) => (
                 <QuestionPreview
