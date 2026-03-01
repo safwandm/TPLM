@@ -17,6 +17,7 @@ class KuisController extends Controller
                 'kuisAktif',
                 'latestSesi'
             ])
+            ->orderBy('judul', 'asc')
             ->get();
 
         return response()->json($kuis);
