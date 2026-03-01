@@ -7,6 +7,7 @@ export default function OrderingQuestion({
     submitAnswer,
     status,
     correctAnswer,
+    showCorrectAnswer,
 }) {
     const [dragIndex, setDragIndex] = useState(null);
 
@@ -41,7 +42,7 @@ export default function OrderingQuestion({
        Otherwise → show student's drag order
     ===================================================== */
     const order =
-        status === "result" && correctShuffledOrder
+        status === "result" && showCorrectAnswer && correctShuffledOrder
             ? correctShuffledOrder
             : studentOrder;
 
@@ -78,7 +79,16 @@ export default function OrderingQuestion({
        🎨 RESULT COLOR LOGIC (THE IMPORTANT PART)
     ===================================================== */
     const getResultStyle = (positionIndex) => {
-        if (status !== "result" || !correctAnswer) return "";
+        if (status !== "result") return "";
+
+        // If correct answers are hidden → keep student's answer highlighted in BLUE
+        if (!showCorrectAnswer) {
+            return selectedAnswer !== null
+                ? "bg-blue-700 text-white border-blue-900"
+                : "";
+        }
+
+        if (!correctAnswer) return "";
 
         // student never answered → everything is wrong
         if (neverAnswered) return "border-red-500 bg-red-50";
@@ -92,7 +102,7 @@ export default function OrderingQuestion({
 
         // Where did the student place THIS item?
         const studentPosition = studentOriginalOrder.indexOf(renderedOriginalIndex);
-        
+
         return studentPosition === positionIndex
             ? "border-green-500 bg-green-50"
             : "border-red-500 bg-red-50";
@@ -109,7 +119,7 @@ export default function OrderingQuestion({
                         draggable={status === "idle"}
                         onDragStart={() => handleDragStart(position)}
                         onDragOver={(e) => handleDragOver(e, position)}
-                        className={`flex items-center border-2 rounded-xl p-4 bg-white
+                        className={`flex items-center border-2 rounded-xl p-4 bg-gray-300 border-gray-400
 ${selectedAnswer !== null ? "ring-2 ring-yellow-300" : ""}
 ${getResultStyle(position)}`}
                     >

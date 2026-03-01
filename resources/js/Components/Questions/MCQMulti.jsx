@@ -5,6 +5,7 @@ export default function MCQMulti({
     submitAnswer,
     status,
     correctAnswer,
+    showCorrectAnswer,
 }) {
     const toggle = (i) => {
         setSelectedAnswer(prev => {
@@ -37,17 +38,23 @@ export default function MCQMulti({
                         disabled={status !== "idle"}
                         onClick={() => toggle(i)}
                         className={`h-28 rounded-xl font-bold transition border-4
-${status === "result" && correctAnswer !== null
-                                ? correctAnswer?.includes(i)
-                                    ? selectedAnswer?.includes(i)
-                                        ? "bg-green-600 text-white border-green-900 ring-4 ring-yellow-300"
-                                        : "bg-green-600 text-white border-green-900"
-                                    : selectedAnswer?.includes(i)
-                                        ? "bg-red-500 text-white border-red-900 ring-4 ring-yellow-300"
-                                        : "bg-gray-300 border-gray-400"
-                                : selectedAnswer?.includes(i)
-                                    ? "bg-blue-700 text-white border-blue-900"
-                                    : "bg-gray-300 border-gray-400"}`}
+${status === "result"
+    ? (!showCorrectAnswer
+        ? (selectedAnswer?.includes(i)
+            ? "bg-blue-700 text-white border-blue-900 ring-4 ring-yellow-300"
+            : "bg-gray-300 border-gray-400 opacity-60")
+        : (correctAnswer !== null
+            ? (correctAnswer?.includes(i)
+                ? (selectedAnswer?.includes(i)
+                    ? "bg-green-600 text-white border-green-900 ring-4 ring-yellow-300"
+                    : "bg-green-600 text-white border-green-900")
+                : (selectedAnswer?.includes(i)
+                    ? "bg-red-500 text-white border-red-900 ring-4 ring-yellow-300"
+                    : "bg-gray-300 border-gray-400"))
+            : "bg-gray-300 border-gray-400"))
+    : (selectedAnswer?.includes(i)
+        ? "bg-blue-700 text-white border-blue-900"
+        : "bg-gray-300 border-gray-400")}`}
                     >
                         {opt}
                     </button>

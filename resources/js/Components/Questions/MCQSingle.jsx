@@ -4,6 +4,7 @@ export default function MCQSingle({
     setSelectedAnswer,
     status,
     correctAnswer,
+    showCorrectAnswer,
 }) {
     return (
         <>
@@ -14,15 +15,21 @@ export default function MCQSingle({
                         disabled={status !== "idle"}
                         onClick={() => setSelectedAnswer(selectedAnswer === i ? null : i)}
                         className={`h-28 rounded-xl font-bold transition border-4
-${status === "result" && correctAnswer !== null
-    ? correctAnswer === i
-        ? "bg-green-600 text-white border-green-900"
-        : selectedAnswer === i
-            ? "bg-red-500 text-white border-red-900 ring-4 ring-yellow-300"
-            : "bg-gray-300 border-gray-400"
-    : selectedAnswer === i
+${status === "result"
+    ? (!showCorrectAnswer
+        ? (selectedAnswer === i
+            ? "bg-blue-700 text-white border-blue-900 ring-4 ring-yellow-300"
+            : "bg-gray-300 border-gray-400 opacity-60")
+        : (correctAnswer !== null
+            ? (correctAnswer === i
+                ? "bg-green-600 text-white border-green-900"
+                : (selectedAnswer === i
+                    ? "bg-red-500 text-white border-red-900 ring-4 ring-yellow-300"
+                    : "bg-gray-300 border-gray-400"))
+            : "bg-gray-300 border-gray-400"))
+    : (selectedAnswer === i
         ? "bg-blue-700 text-white border-blue-900"
-        : "bg-gray-300 border-gray-400"}`}
+        : "bg-gray-300 border-gray-400")}`}
                     >
                         {opt}
                     </button>

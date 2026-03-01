@@ -3,6 +3,7 @@ export default function TrueFalse({
     setSelectedAnswer,
     status,
     correctAnswer,
+    showCorrectAnswer,
 }) {
     const isResult = status === "result";
 
@@ -16,6 +17,14 @@ export default function TrueFalse({
     function getButtonStyle(v) {
         // ===== RESULT PHASE =====
         if (isResult) {
+            // If quiz is configured to HIDE correct answers → keep neutral colors
+            if (!showCorrectAnswer) {
+                if (selectedAnswer === v)
+                    return "bg-blue-700 text-white border-blue-900 scale-105";
+                return "bg-gray-200 border-gray-300 opacity-60";
+            }
+
+            // Normal behaviour (showing correctness)
             if (correctAnswer === v && selectedAnswer === v)
                 return "bg-green-600 text-white border-green-900 scale-110 shadow-xl ring-4 ring-yellow-300";
 

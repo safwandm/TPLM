@@ -7,6 +7,7 @@ export default function MatchingQuestion({
     submitAnswer,
     status,
     correctAnswer,
+    showCorrectAnswer,
 }) {
     const kiri = currentQuestion.opsi.kiri;
     const kanan = currentQuestion.opsi.kanan;
@@ -142,11 +143,10 @@ export default function MatchingQuestion({
                         const y2 = leftRect.top + leftRect.height / 2 - containerRect.top;
 
                         let color;
-                        if (status === "result" && correctPairs) {
-                            // Only color based on student's actual pair
+                        if (status === "result" && showCorrectAnswer && correctPairs) {
                             color = correctPairs[leftIndex] === rightIndex ? "#22c55e" : "#ef4444";
                         } else {
-                            color = "#94a3b8"; // neutral gray while answering
+                            color = "#94a3b8"; // neutral gray
                         }
 
                         return (
@@ -170,17 +170,23 @@ export default function MatchingQuestion({
                             key={i}
                             onClick={() => selectAnswer(i)}
                             className={`p-4 rounded-xl border-2 transition select-none
-${status === "idle" ? "cursor-pointer bg-blue-100 hover:bg-blue-200" : "bg-blue-50"}
-${activeA === i ? "ring-4 ring-blue-500 scale-105" : ""}
-${status === "result"
-    ? (() => {
-            const leftKey = Object.keys(pairs).find(k => pairs[k] === i);
-            if (leftKey === undefined) return "border-gray-300 bg-gray-100";
-            return correctPairs && correctPairs[leftKey] === i
-                ? "border-green-500 bg-green-50"
-                : "border-red-500 bg-red-50";
-        })()
-    : ""}
+                                    ${status === "idle" ? "cursor-pointer bg-blue-100 hover:bg-blue-200" : "bg-blue-50"}
+                                    ${activeA === i ? "bg-blue-700 text-white border-blue-900 ring-4 ring-yellow-300 scale-105" : ""}
+                                    ${status === "result"
+                                    ? (() => {
+                                        if (!showCorrectAnswer) {
+                                            const leftKey = Object.keys(pairs).find(k => pairs[k] === i);
+                                            return leftKey === undefined
+                                                ? "bg-gray-300 border-gray-400"
+                                                : "border-gray-400 bg-gray-200";
+                                        }
+                                        const leftKey = Object.keys(pairs).find(k => pairs[k] === i);
+                                        if (leftKey === undefined) return "bg-gray-300 border-gray-400";
+                                        return correctPairs && correctPairs[leftKey] === i
+                                            ? "border-green-500 bg-green-50"
+                                            : "border-red-500 bg-red-50";
+                                    })()
+                                    : ""}
 `}
                         >
                             {a}
@@ -195,16 +201,22 @@ ${status === "result"
                             key={i}
                             onClick={() => selectQuestion(i)}
                             className={`p-4 rounded-xl border-2 transition select-none
-${status === "idle" ? "cursor-pointer bg-green-100 hover:bg-green-200" : "bg-green-50"}
-${activeQ === i ? "ring-4 ring-green-500 scale-105" : ""}
-${status === "result"
-    ? pairs[i] !== undefined
-        ? (correctPairs && pairs[i] === correctPairs[i]
-            ? "border-green-500 bg-green-50"
-            : "border-red-500 bg-red-50")
-        : "border-gray-300 bg-gray-100"
-    : ""}
-`}
+                                        ${status === "idle" ? "cursor-pointer bg-green-100 hover:bg-green-200" : "bg-green-50"}
+                                        ${activeQ === i ? "bg-blue-700 text-white border-blue-900 ring-4 ring-yellow-300 scale-105" : ""}
+                                        ${status === "result"
+                                    ? (() => {
+                                        if (!showCorrectAnswer) {
+                                            return pairs[i] !== undefined
+                                                ? "border-gray-400 bg-gray-200"
+                                                : "bg-gray-300 border-gray-400";
+                                        }
+                                        return pairs[i] !== undefined
+                                            ? (correctPairs && pairs[i] === correctPairs[i]
+                                                ? "border-green-500 bg-green-50"
+                                                : "border-red-500 bg-red-50")
+                                            : "bg-gray-300 border-gray-400";
+                                    })()
+                                    : ""}`}
                         >
                             {q}
                         </div>

@@ -142,6 +142,7 @@ export default function MuridQuizRefactored() {
             setSelectedAnswer: quiz.setSelectedAnswer,
             status: quiz.status,
             correctAnswer: quiz.correctAnswer,
+            showCorrectAnswer: quiz.quizConfig.tampilkan_jawaban_benar,
         };
 
         switch (quiz.currentQuestion.tipe_pertanyaan) {
