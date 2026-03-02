@@ -1,5 +1,5 @@
 import { FaPlus } from "react-icons/fa";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 export default function QuestionForm({
   setEditingIndex,
@@ -31,6 +31,33 @@ export default function QuestionForm({
 
   const [imageError, setImageError] = useState(false);
   const [showScoreInfo, setShowScoreInfo] = useState(false);
+
+  // MathLive editor ref
+  const mathRef = useRef(null);
+
+  // Sync MathLive value -> React state
+  useEffect(() => {
+    if (!mathRef.current) return;
+
+    const el = mathRef.current;
+
+    const handler = () => {
+      const latex = el.getValue ? el.getValue() : el.value;
+      setMathEq(latex);
+    };
+
+    el.addEventListener("input", handler);
+
+    return () => el.removeEventListener("input", handler);
+  }, []);
+
+  // Sync React state -> MathLive editor
+  useEffect(() => {
+    if (mathRef.current && mathEq !== undefined) {
+      if (mathRef.current.setValue) mathRef.current.setValue(mathEq || "");
+      else mathRef.current.value = mathEq || "";
+    }
+  }, [mathEq]);
 
   function validateImage(url) {
     if (!url) {
@@ -116,13 +143,20 @@ export default function QuestionForm({
             URL gambar tidak valid atau tidak dapat dimuat.
           </div>
         )}
-
-        <input
-          className="border p-3 rounded w-full"
-          placeholder="Persamaan matematika (opsional)"
-          value={mathEq}
-          onChange={(e) => setMathEq(e.target.value)}
-        />
+        <div className="col-span-2">
+          <label className="text-sm font-medium block mb-2">
+            Persamaan matematika (opsional – gunakan editor)
+          </label>
+          <math-field
+            ref={mathRef}
+            class="w-full min-h-[60px] border rounded p-3 bg-white"
+            virtual-keyboard-mode="onfocus"
+            smart-mode="true"
+          ></math-field>
+          <p className="text-xs text-gray-500 mt-1">
+            Gunakan keyboard matematika untuk pecahan, akar, pangkat, integral, dll.
+          </p>
+        </div>
       </div>
 
       {/* MULTIPLE CHOICE */}

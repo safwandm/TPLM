@@ -20,6 +20,9 @@ import MatchingQuestion from "@/Components/Questions/MatchingQuestion";
 
 import Leaderboard from "@/Components/Leaderboard";
 
+import 'katex/dist/katex.min.css';
+import { BlockMath } from 'react-katex';
+
 export default function MuridQuizRefactored() {
     const [showImageModal, setShowImageModal] = React.useState(false);
     // In the old page, peserta is stored in localStorage, not passed via Inertia props
@@ -195,6 +198,12 @@ export default function MuridQuizRefactored() {
             <h2 className="text-white text-xl mb-6 text-center">
                 {quiz.currentQuestion.pertanyaan}
             </h2>
+
+            {quiz.currentQuestion.persamaan_matematika && (
+                <div className="bg-white text-black rounded-2xl px-6 py-4 mb-6 shadow-lg">
+                    <BlockMath math={quiz.currentQuestion.persamaan_matematika} />
+                </div>
+            )}
 
             {renderQuestion()}
 
