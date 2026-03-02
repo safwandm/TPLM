@@ -16,6 +16,36 @@ export default function AdminDashboard() {
   });
 
   // ================= LOAD USERS =================
+
+  // Format UNIX timestamp (seconds) → human readable Indonesian
+  const formatLastActivity = (ts) => {
+    if (!ts) return "-";
+
+    const now = Date.now();
+    const last = ts * 1000; // convert seconds → ms
+    const diffSec = Math.floor((now - last) / 1000);
+
+    if (diffSec < 60) return "Baru saja";
+
+    const diffMin = Math.floor(diffSec / 60);
+    if (diffMin < 60) return `${diffMin} menit lalu`;
+
+    const diffHour = Math.floor(diffMin / 60);
+    if (diffHour < 24) return `${diffHour} jam lalu`;
+
+    const diffDay = Math.floor(diffHour / 24);
+    if (diffDay < 7) return `${diffDay} hari lalu`;
+
+    // Fallback: show full date
+    const d = new Date(last);
+    return d.toLocaleString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
   const loadUsers = async () => {
     const res = await webFetch("/web/admin/users");
     if (!res.ok) throw new Error("Gagal load users");
@@ -129,7 +159,7 @@ export default function AdminDashboard() {
               <tr>
                 <th className="p-3 text-left">Nama User</th>
                 <th className="p-3 text-left">Peran</th>
-                <th className="p-3 text-left">Terakhir Login</th>
+                <th className="p-3 text-left">Terakhir Aktif</th>
                 <th className="p-3 text-center">Aksi</th>
               </tr>
             </thead>
@@ -140,7 +170,7 @@ export default function AdminDashboard() {
                   <td className="p-3 capitalize">
                     {u.roles?.[0]?.name || "-"}
                   </td>
-                  <td className="p-3">{u.last_login_at || "-"}</td>
+                  <td className="p-3">{formatLastActivity(u.last_activity)}</td>
                   <td className="p-3 text-center space-x-3">
                     <button
                       onClick={() => handleResetPassword(u.id)}

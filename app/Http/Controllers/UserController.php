@@ -63,8 +63,15 @@ class UserController extends Controller
     public function list_users()
     {
         $users = User::with('roles')
+            ->withMax('sessions', 'last_activity')
             ->orderBy('name')
             ->get();
+
+        // rename sessions_max_last_activity -> last_activity
+        $users->each(function ($user) {
+            $user->last_activity = $user->sessions_max_last_activity;
+            unset($user->sessions_max_last_activity);
+        });
 
         return response()->json([
             'users' => $users
