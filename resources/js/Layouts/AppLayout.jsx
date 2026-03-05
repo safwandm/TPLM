@@ -4,9 +4,9 @@ export default function AppLayout({ children }) {
     const user = JSON.parse(localStorage.getItem("auth_user"));
 
     return (
-        <div>
+        <div className="min-h-screen flex flex-col">
             <Header user={user} />
-            <main className="p-8">{children}</main>
+            <main className="flex-1 p-8 pt-24 overflow-y-auto">{children}</main>
         </div>
     );
 }

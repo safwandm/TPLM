@@ -20,9 +20,18 @@ export default function Dashboard() {
     const [error, setError] = useState(null);
     const [loadingId, setLoadingId] = useState(null);
 
+    // Pagination state
+    const [page, setPage] = useState(1);
+    const pageSize = 5;
+
     const [showTextModal, setShowTextModal] = useState(false);
     const [waitingText, setWaitingText] = useState("");
     const [selectedQuizId, setSelectedQuizId] = useState(null);
+
+    // Pagination derived values
+    const totalPages = Math.ceil(quizzes.length / pageSize);
+    const startIndex = (page - 1) * pageSize;
+    const paginatedQuizzes = quizzes.slice(startIndex, startIndex + pageSize);
 
     /* =====================================
        FETCH QUIZZES
@@ -167,7 +176,7 @@ export default function Dashboard() {
     ===================================== */
     return (
         <ProtectedLayout allowedRoles={["teacher"]}>
-            <div>
+            <div className="overscroll-none">
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h2 className="text-xl font-semibold">Kuis saya</h2>
@@ -192,7 +201,7 @@ export default function Dashboard() {
                     <p className="text-gray-500">Belum ada kuis.</p>
                 ) : (
                     <div className="space-y-4">
-                        {quizzes.map((q) => (
+                        {paginatedQuizzes.map((q) => (
                             <div
                                 key={q.id}
                                 className="border rounded-xl p-4 flex justify-between items-center"
@@ -302,6 +311,50 @@ export default function Dashboard() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+                {/* Pagination controls */}
+                {quizzes.length > 0 && (
+                    <div className="flex justify-center items-center gap-2 mt-6">
+                        <button
+                            onClick={() => setPage(1)}
+                            disabled={page === 1}
+                            className="px-2 py-1 border rounded disabled:opacity-40"
+                        >
+                            {'<<'}
+                        </button>
+                        <button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1}
+                            className="px-2 py-1 border rounded disabled:opacity-40"
+                        >
+                            {'<'}
+                        </button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1)
+                            .slice(Math.max(0, page - 3), page + 2)
+                            .map((p) => (
+                                <button
+                                    key={p}
+                                    onClick={() => setPage(p)}
+                                    className={`px-3 py-1 border rounded ${p === page ? 'bg-blue-600 text-white' : ''}`}
+                                >
+                                    {p}
+                                </button>
+                            ))}
+                        <button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages}
+                            className="px-2 py-1 border rounded disabled:opacity-40"
+                        >
+                            {'>'}
+                        </button>
+                        <button
+                            onClick={() => setPage(totalPages)}
+                            disabled={page === totalPages}
+                            className="px-2 py-1 border rounded disabled:opacity-40"
+                        >
+                            {'>>'}
+                        </button>
                     </div>
                 )}
             </div>
