@@ -1,11 +1,18 @@
 import { useEffect, useState } from "react";
 import webFetch from "@/lib/webFetch";
 import AppLayout from "@/Layouts/AppLayout";
+import Modal from "@/Components/Modal";
 
 export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [search, setSearch] = useState("");
+
+  const [resetUserId, setResetUserId] = useState(null);
+  const [resetPassword, setResetPassword] = useState("");
+  const [showResetModal, setShowResetModal] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -95,18 +102,24 @@ export default function AdminDashboard() {
   };
 
   // ================= UC-02: RESET PASSWORD =================
-  const handleResetPassword = async (userId) => {
-    const password = prompt("Masukkan password baru (min 8 karakter):");
-    if (!password) return;
+  const handleResetPassword = (userId) => {
+    setResetUserId(userId);
+    setResetPassword("");
+    setShowResetModal(true);
+  };
+
+  const submitResetPassword = async (e) => {
+    e.preventDefault();
+    if (!resetUserId) return;
 
     try {
       const res = await webFetch(
-        `/web/admin/user/${userId}/replace-password`,
+        `/web/admin/user/${resetUserId}/replace-password`,
         {
           method: "PUT",
           body: JSON.stringify({
-            password,
-            password_confirmation: password,
+            password: resetPassword,
+            password_confirmation: resetPassword,
           }),
         }
       );
@@ -114,6 +127,10 @@ export default function AdminDashboard() {
       if (!res.ok) throw new Error();
 
       alert("Password berhasil diperbarui");
+
+      setShowResetModal(false);
+      setResetUserId(null);
+      setResetPassword("");
     } catch {
       alert("Gagal reset password");
     }
@@ -137,60 +154,154 @@ export default function AdminDashboard() {
     }
   };
 
+  // ================= UC-04: EDIT USER =================
+  const handleEdit = (user) => {
+    setEditingUser(user);
+    setForm({
+      name: user.name || "",
+      email: user.email || "",
+      identifier: user.identifier || "",
+      role: user.roles?.[0]?.name || "teacher",
+      password: "",
+    });
+    setShowModal(true);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    if (!editingUser) return;
+
+    setLoading(true);
+
+    try {
+      const res = await webFetch(`/web/admin/user/${editingUser.id}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          name: form.name,
+          email: form.email,
+          identifier: form.identifier,
+          role: form.role,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        console.error(err);
+        throw new Error();
+      }
+
+      alert("Data pengguna berhasil diperbarui");
+
+      setEditingUser(null);
+      setShowModal(false);
+
+      setForm({
+        name: "",
+        email: "",
+        identifier: "",
+        role: "teacher",
+        password: "",
+      });
+
+      loadUsers();
+    } catch {
+      alert("Gagal memperbarui pengguna");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <AppLayout title="Manajemen Pengguna">
-      <div className="p-6 space-y-6">
+      <div className="max-w-5xl mx-auto space-y-6 p-4">
 
         {/* HEADER */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Manajemen pengguna</h1>
-          <button
-            onClick={() => setShowModal(true)}
-            className="bg-blue-700 text-white px-4 py-2 rounded"
-          >
-            ➕ Tambahkan Pengguna
-          </button>
+        <div className="flex items-center justify-between border-b pb-3 gap-4">
+          <h1 className="text-2xl font-semibold">Manajemen Pengguna</h1>
+
+          <div className="flex items-center gap-3">
+            <input
+              type="text"
+              placeholder="Cari pengguna..."
+              className="border p-2 rounded w-64"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            <button
+              onClick={loadUsers}
+              className="w-10 h-10 flex items-center justify-center border rounded-full hover:bg-gray-100"
+              title="Refresh daftar pengguna"
+            >
+              ↻
+            </button>
+
+            <button
+              onClick={() => setShowModal(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded whitespace-nowrap"
+            >
+              Tambah Pengguna
+            </button>
+          </div>
         </div>
 
         {/* TABLE */}
-        <div className="bg-white rounded shadow overflow-x-auto">
+        <div className="bg-white rounded border overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-orange-400">
+            <thead className="bg-gray-100 text-gray-700">
               <tr>
                 <th className="p-3 text-left">Nama User</th>
+                <th className="p-3 text-left">Identifier</th>
+                <th className="p-3 text-left">Email</th>
                 <th className="p-3 text-left">Peran</th>
                 <th className="p-3 text-left">Terakhir Aktif</th>
                 <th className="p-3 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className="border-b">
-                  <td className="p-3">{u.name}</td>
-                  <td className="p-3 capitalize">
-                    {u.roles?.[0]?.name || "-"}
-                  </td>
-                  <td className="p-3">{formatLastActivity(u.last_activity)}</td>
-                  <td className="p-3 text-center space-x-3">
-                    <button
-                      onClick={() => handleResetPassword(u.id)}
-                      className="text-blue-600"
-                    >
-                      🔑
-                    </button>
-                    <button
-                      onClick={() => handleDelete(u.id)}
-                      className="text-red-600"
-                    >
-                      🗑️
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {users
+                .filter((u) => u.roles?.[0]?.name !== "admin")
+                .filter((u) =>
+                  u.name?.toLowerCase().includes(search.toLowerCase())
+                )
+                .map((u) => (
+                  <tr key={u.id} className="border-b">
+                    <td className="p-3">{u.name}</td>
+                    <td className="p-3">{u.identifier || "-"}</td>
+                    <td className="p-3">{u.email || "-"}</td>
+                    <td className="p-3 capitalize">
+                      {u.roles?.[0]?.name || "-"}
+                    </td>
+                    <td className="p-3">{formatLastActivity(u.last_activity)}</td>
+                    <td className="p-3 text-center space-x-4">
+                      <button
+                        onClick={() => handleEdit(u)}
+                        className="text-green-600 hover:text-green-800"
+                        title="Edit Pengguna"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => handleResetPassword(u.id)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Reset Password"
+                      >
+                        🔑
+                      </button>
+                      <button
+                        onClick={() => handleDelete(u.id)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Hapus Pengguna"
+                      >
+                        🗑️
+                      </button>
+                    </td>
+                  </tr>
+                ))}
 
               {users.length === 0 && (
                 <tr>
-                  <td colSpan="4" className="p-4 text-center text-gray-500">
+                  <td colSpan="6" className="p-4 text-center text-gray-500">
                     Belum ada data pengguna
                   </td>
                 </tr>
@@ -200,85 +311,123 @@ export default function AdminDashboard() {
         </div>
 
         {/* MODAL */}
-        {showModal && (
-          <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
-            <div className="bg-white rounded p-6 w-full max-w-lg">
-              <h2 className="text-lg font-bold mb-4">
-                Tambah Pengguna Baru
-              </h2>
+        <Modal open={showModal}>
+          <h2 className="text-lg font-bold mb-4">
+            {editingUser ? "Edit Pengguna" : "Tambah Pengguna Baru"}
+          </h2>
 
-              <form onSubmit={handleCreate} className="grid gap-4">
-                <input
-                  className="border p-2 rounded"
-                  placeholder="Nama Lengkap"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm({ ...form, name: e.target.value })
-                  }
-                  required
-                />
+          <form onSubmit={editingUser ? handleUpdate : handleCreate} className="grid gap-4">
+            <input
+              className="border p-2 rounded"
+              placeholder="Nama Lengkap"
+              value={form.name}
+              onChange={(e) =>
+                setForm({ ...form, name: e.target.value })
+              }
+              required
+            />
 
-                <input
-                  className="border p-2 rounded"
-                  placeholder="Email (opsional)"
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm({ ...form, email: e.target.value })
-                  }
-                />
+            <input
+              className="border p-2 rounded"
+              placeholder="Email (opsional)"
+              value={form.email}
+              onChange={(e) =>
+                setForm({ ...form, email: e.target.value })
+              }
+            />
 
-                <input
-                  className="border p-2 rounded"
-                  placeholder="NIS / NIP / NUPTK"
-                  value={form.identifier}
-                  onChange={(e) =>
-                    setForm({ ...form, identifier: e.target.value })
-                  }
-                  required
-                />
+            <input
+              className="border p-2 rounded"
+              placeholder="NIS / NIP / NUPTK"
+              value={form.identifier}
+              onChange={(e) =>
+                setForm({ ...form, identifier: e.target.value })
+              }
+              required
+            />
 
-                <select
-                  className="border p-2 rounded"
-                  value={form.role}
-                  onChange={(e) =>
-                    setForm({ ...form, role: e.target.value })
-                  }
-                >
-                  <option value="teacher">Guru</option>
-                  <option value="student">Murid</option>
-                </select>
+            <select
+              className="border p-2 rounded"
+              value={form.role}
+              onChange={(e) =>
+                setForm({ ...form, role: e.target.value })
+              }
+            >
+              <option value="teacher">Guru</option>
+              <option value="student">Murid</option>
+            </select>
 
-                <input
-                  type="password"
-                  className="border p-2 rounded"
-                  placeholder="Password Sementara"
-                  value={form.password}
-                  onChange={(e) =>
-                    setForm({ ...form, password: e.target.value })
-                  }
-                  required
-                />
+            {!editingUser && (
+              <input
+                type="password"
+                className="border p-2 rounded"
+                placeholder="Password Sementara"
+                value={form.password}
+                onChange={(e) =>
+                  setForm({ ...form, password: e.target.value })
+                }
+                required
+              />
+            )}
 
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowModal(false)}
-                    className="border px-4 py-2 rounded"
-                  >
-                    Batal
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="bg-blue-700 text-white px-4 py-2 rounded"
-                  >
-                    {loading ? "Menyimpan..." : "Simpan"}
-                  </button>
-                </div>
-              </form>
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowModal(false);
+                  setEditingUser(null);
+                }}
+                className="border px-4 py-2 rounded"
+              >
+                Batal
+              </button>
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-blue-700 text-white px-4 py-2 rounded"
+              >
+                {loading ? "Menyimpan..." : "Simpan"}
+              </button>
             </div>
-          </div>
-        )}
+          </form>
+        </Modal>
+
+        {/* RESET PASSWORD MODAL */}
+        <Modal open={showResetModal}>
+          <h2 className="text-lg font-bold mb-4">Reset Password</h2>
+
+          <form onSubmit={submitResetPassword} className="grid gap-4">
+            <input
+              type="password"
+              className="border p-2 rounded"
+              placeholder="Password baru (min 8 karakter)"
+              value={resetPassword}
+              onChange={(e) => setResetPassword(e.target.value)}
+              required
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowResetModal(false);
+                  setResetUserId(null);
+                  setResetPassword("");
+                }}
+                className="border px-4 py-2 rounded"
+              >
+                Batal
+              </button>
+
+              <button
+                type="submit"
+                className="bg-blue-700 text-white px-4 py-2 rounded"
+              >
+                Simpan Password
+              </button>
+            </div>
+          </form>
+        </Modal>
       </div>
     </AppLayout>
   );

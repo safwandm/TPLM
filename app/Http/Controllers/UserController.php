@@ -79,6 +79,36 @@ class UserController extends Controller
     }
 
     /**
+     * UC-04: Edit data pengguna (tanpa password)
+     */
+    public function update_user(Request $request, $id)
+    {
+        $user = User::findOrFail($id);
+
+        $fields = $request->validate([
+            'name'       => 'required|string|max:255',
+            'email'      => 'nullable|email|string|unique:users,email,' . $user->id,
+            'identifier' => 'required|string|unique:users,identifier,' . $user->id,
+            'role'       => 'required|string|in:teacher,student',
+        ]);
+
+        // Update basic fields
+        $user->update([
+            'name'       => $fields['name'],
+            'email'      => $fields['email'] ?? null,
+            'identifier' => $fields['identifier'],
+        ]);
+
+        // Sync role (Spatie)
+        $user->syncRoles([$fields['role']]);
+
+        return response()->json([
+            'message' => 'Data pengguna berhasil diperbarui.',
+            'user'    => $user->load('roles')
+        ], 200);
+    }
+
+    /**
      * UC-03: Hapus akun pengguna
      */
     public function delete_user($id)

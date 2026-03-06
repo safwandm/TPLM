@@ -95,6 +95,7 @@ Route::prefix('web/admin')
 
         Route::post('/user/create-user', [UserController::class, 'create_user']);
         Route::put('/user/{id}/replace-password', [UserController::class, 'replace_password']);
+        Route::put('/user/{id}', [UserController::class, 'update_user']);
         Route::delete('/user/{id}', [UserController::class, 'delete_user']);
         Route::get('/users', [UserController::class, 'list_users']);
     });
