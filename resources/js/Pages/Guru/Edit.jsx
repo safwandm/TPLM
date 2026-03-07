@@ -80,6 +80,20 @@ export default function EditQuiz({ quizId }) {
     console.log("SUBMIT editingId:", editingId);
     if (!text.trim()) return alert("Pertanyaan wajib diisi");
 
+    const opsiBersih = opsi.filter(o => o.trim());
+
+    if (tipe === "multiple_choice_single" && opsiBersih.length < 3) {
+      return alert("Pilihan ganda (single) minimal 3 opsi");
+    }
+
+    if (tipe === "multiple_choice_multi" && opsiBersih.length < 2) {
+      return alert("Pilihan ganda (multi) minimal 2 opsi");
+    }
+
+    if (tipe === "ordering" && opsiBersih.length < 2) {
+      return alert("Ordering minimal 2 langkah");
+    }
+
     let payload = {
       tipe_pertanyaan: tipe,
       pertanyaan: text,

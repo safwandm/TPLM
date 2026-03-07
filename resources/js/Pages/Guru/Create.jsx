@@ -41,12 +41,17 @@ export default function CreateQuiz() {
 
     const opsiBersih = opsi.filter((o) => o.trim() !== "");
 
-    // Only validate opsi for question types that actually use it
-    if (
-      ["multiple_choice_single", "multiple_choice_multi", "ordering"].includes(tipe) &&
-      opsiBersih.length < 2
-    ) {
-      return alert("Minimal 2 opsi");
+    // Type-specific opsi validation
+    if (tipe === "multiple_choice_single" && opsiBersih.length < 3) {
+      return alert("Pilihan ganda (single) minimal 3 opsi");
+    }
+
+    if (tipe === "multiple_choice_multi" && opsiBersih.length < 2) {
+      return alert("Pilihan ganda (multi) minimal 2 opsi");
+    }
+
+    if (tipe === "ordering" && opsiBersih.length < 2) {
+      return alert("Ordering minimal 2 langkah");
     }
 
     if (tipe === "multiple_choice_multi" && jawabanMulti.length === 0) {

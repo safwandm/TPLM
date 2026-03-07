@@ -32,6 +32,48 @@ export default function QuestionForm({
   const [imageError, setImageError] = useState(false);
   const [showScoreInfo, setShowScoreInfo] = useState(false);
 
+  // Option limits per question type
+  const OPTION_LIMITS = {
+    multiple_choice_single: { min: 3, max: 4 },
+    multiple_choice_multi: { min: 2, max: 4 },
+    ordering: { min: 2, max: 6 },
+  };
+
+  function updateOption(i, value) {
+    setOpsi((prev) => prev.map((o, idx) => (idx === i ? value : o)));
+  }
+
+  function addOption() {
+    const limit = OPTION_LIMITS[tipe];
+    if (!limit) return;
+    setOpsi((prev) => (prev.length < limit.max ? [...prev, ""] : prev));
+  }
+
+  function removeOption(i) {
+    const limit = OPTION_LIMITS[tipe];
+    if (!limit) return;
+
+    setOpsi((prev) => {
+      if (prev.length <= limit.min) return prev;
+      const next = prev.filter((_, idx) => idx !== i);
+
+      // Fix answers if indexes become invalid
+      setJawabanSingle((prevSingle) => {
+        if (prevSingle === i) return 0;        // deleted answer → reset
+        if (prevSingle > i) return prevSingle - 1; // shift index left
+        return prevSingle;
+      });
+
+      setJawabanMulti((prevMulti) =>
+        prevMulti
+          .filter((idx) => idx !== i)        // remove deleted option
+          .map((idx) => (idx > i ? idx - 1 : idx)) // shift indexes left
+      );
+
+      return next;
+    });
+  }
+
   // MathLive editor ref
   const mathRef = useRef(null);
 
@@ -81,7 +123,7 @@ export default function QuestionForm({
     setText("");
     setImageUrl("");
     setMathEq("");
-    setOpsi(["", "", "", ""]);
+    setOpsi(["", "", ""]);
     setJawabanSingle(0);
     setJawabanMulti([]);
     setBatasWaktu("");
@@ -98,23 +140,6 @@ export default function QuestionForm({
     <div className="bg-white rounded-xl shadow p-6 space-y-4">
       <h2 className="font-semibold text-lg">Tambah Pertanyaan</h2>
 
-      {/* TYPE */}
-      <select
-        className="border p-3 w-full rounded"
-        value={tipe}
-        onChange={(e) => {
-          setTipe(e.target.value);
-          setJawabanSingle(0);
-          setJawabanMulti([]);
-        }}
-      >
-        <option value="multiple_choice_single">Pilihan Ganda (Single)</option>
-        <option value="multiple_choice_multi">Pilihan Ganda (Multi)</option>
-        <option value="true_false">True / False</option>
-        <option value="ordering">Ordering (Susun Urutan)</option>
-        <option value="matching">Matching (Menjodohkan)</option>
-      </select>
-
       {/* QUESTION TEXT */}
       <h3 className="font-semibold">Pertanyaan</h3>
       <textarea
@@ -127,7 +152,6 @@ export default function QuestionForm({
       {/* MEDIA */}
       <h3 className="font-semibold">Media (opsional)</h3>
       <div className="grid grid-cols-2 gap-4">
-
         <input
           className={`border p-3 rounded w-full ${imageError ? "border-red-500" : ""}`}
           placeholder="URL Gambar (opsional)"
@@ -158,6 +182,43 @@ export default function QuestionForm({
           </p>
         </div>
       </div>
+
+      {/* TYPE & ANSWER CONFIG */}
+      <div className="bg-gray-50 border rounded-lg p-4 space-y-4">
+        <div className="space-y-2">
+          <h3 className="font-semibold text-sm text-gray-700">
+            Tipe Pertanyaan
+          </h3>
+          <select
+            className="border p-3 w-full rounded bg-white"
+            value={tipe}
+            onChange={(e) => {
+              const newType = e.target.value;
+              setTipe(newType);
+              setJawabanSingle(0);
+              setJawabanMulti([]);
+
+              const limit = OPTION_LIMITS[newType];
+              if (limit) {
+                setOpsi((prev) => {
+                  if (prev.length < limit.min) {
+                    return Array(limit.min).fill("");
+                  }
+                  if (prev.length > limit.max) {
+                    return prev.slice(0, limit.max);
+                  }
+                  return prev;
+                });
+              }
+            }}
+          >
+            <option value="multiple_choice_single">Pilihan Ganda (Single)</option>
+            <option value="multiple_choice_multi">Pilihan Ganda (Multi)</option>
+            <option value="true_false">True / False</option>
+            <option value="ordering">Ordering (Susun Urutan)</option>
+            <option value="matching">Matching (Menjodohkan)</option>
+          </select>
+        </div>
 
       {/* MULTIPLE CHOICE */}
       {(tipe === "multiple_choice_single" || tipe === "multiple_choice_multi") && (
@@ -195,14 +256,33 @@ export default function QuestionForm({
                   )}`}
                   value={o}
                   onChange={(e) => {
-                    const copy = [...opsi];
-                    copy[i] = e.target.value;
-                    setOpsi(copy);
+                    updateOption(i, e.target.value);
                   }}
                 />
+                {(tipe === "multiple_choice_single" || tipe === "multiple_choice_multi") &&
+                  opsi.length > OPTION_LIMITS[tipe].min && (
+                    <button
+                      type="button"
+                      className="text-red-500 hover:text-red-600 font-bold"
+                      onClick={() => removeOption(i)}
+                    >
+                      ✕
+                    </button>
+                  )}
               </div>
             ))}
           </div>
+        )}
+
+      {(tipe === "multiple_choice_single" || tipe === "multiple_choice_multi") &&
+        opsi.length < OPTION_LIMITS[tipe].max && (
+          <button
+            type="button"
+            className="text-blue-600 font-semibold hover:text-blue-700 mt-2"
+            onClick={addOption}
+          >
+            + Tambah opsi
+          </button>
         )}
 
       {/* ORDERING */}
@@ -223,9 +303,7 @@ export default function QuestionForm({
                 placeholder={`Langkah ${i + 1}`}
                 value={o}
                 onChange={(e) => {
-                  const copy = [...opsi];
-                  copy[i] = e.target.value;
-                  setOpsi(copy);
+                  updateOption(i, e.target.value);
                 }}
               />
 
@@ -258,9 +336,26 @@ export default function QuestionForm({
                   ↓
                 </button>
               </div>
+              {opsi.length > OPTION_LIMITS.ordering.min && (
+                <button
+                  type="button"
+                  className="text-red-500 hover:text-red-600 font-bold"
+                  onClick={() => removeOption(i)}
+                >
+                  ✕
+                </button>
+              )}
             </div>
           ))}
-
+          {opsi.length < OPTION_LIMITS.ordering.max && (
+            <button
+              type="button"
+              className="text-blue-600 font-semibold hover:text-blue-700"
+              onClick={() => setOpsi((prev) => [...prev, ""])}
+            >
+              + Tambah langkah
+            </button>
+          )}
           <p className="text-sm text-gray-500">
             Susun dari atas ke bawah. Gunakan tombol ↑ ↓ untuk mengubah urutan.
           </p>
@@ -347,6 +442,7 @@ export default function QuestionForm({
         </select>
       )}
 
+      </div>
       {/* TIME LIMIT */}
       <h3 className="font-semibold">Batas Waktu (detik)</h3>
       <input
@@ -430,6 +526,20 @@ export default function QuestionForm({
               alert("URL gambar tidak valid. Periksa kembali sebelum menyimpan.");
               return;
             }
+
+            // DEBUG: inspect form state before saving question
+            console.log("=== QuestionForm Debug ===");
+            console.log("tipe:", tipe);
+            console.log("text:", text);
+            console.log("opsi:", opsi);
+            console.log("jawabanSingle:", jawabanSingle);
+            console.log("jawabanMulti:", jawabanMulti);
+            console.log("matchingPairs:", matchingPairs);
+            console.log("batasWaktu:", batasWaktu);
+            console.log("skor:", skor);
+            console.log("skorBonusWaktu:", skorBonusWaktu);
+            console.log("==========================");
+
             addQuestion(resetForm);
           }}
         >
